@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: ntm-watch-platform
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: WTO_API_KEY
+        value: 05b4bc94c24a42af8ffc2710fe9db2e6
+    healthCheckPath: /api/health
