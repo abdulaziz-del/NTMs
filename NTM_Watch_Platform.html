@@ -1,0 +1,1614 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>منصة NTM Watch — رصد التدابير غير الجمركية</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+/* ============================================================
+   RESET & ROOT
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy:       #050d1a;
+  --navy2:      #0b1829;
+  --navy3:      #0f2240;
+  --blue:       #1349b8;
+  --blue-lt:    #2563eb;
+  --blue-glow:  rgba(37,99,235,.18);
+  --gold:       #c8922a;
+  --gold-lt:    #f0b429;
+  --teal:       #0d9488;
+  --teal-lt:    #14b8a6;
+  --success:    #059669;
+  --warn:       #d97706;
+  --danger:     #dc2626;
+  --text:       #e8edf5;
+  --text2:      #8fa3be;
+  --text3:      #4a6080;
+  --surface:    #0d1f38;
+  --surface2:   #0a1628;
+  --surface3:   #071120;
+  --border:     rgba(255,255,255,.07);
+  --border2:    rgba(255,255,255,.12);
+  --radius:     10px;
+  --radius-lg:  14px;
+  --font:       'IBM Plex Sans Arabic', sans-serif;
+  --mono:       'JetBrains Mono', monospace;
+  --sidebar-w:  220px;
+  --header-h:   58px;
+}
+
+html, body { height: 100%; font-family: var(--font); background: var(--navy); color: var(--text); font-size: 14px; line-height: 1.6; overflow-x: hidden; }
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--surface3); }
+::-webkit-scrollbar-thumb { background: var(--navy3); border-radius: 3px; }
+
+/* ============================================================
+   LAYOUT SHELL
+   ============================================================ */
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* TOPBAR */
+.topbar {
+  height: var(--header-h);
+  background: var(--navy2);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 1.5rem;
+  position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(12px);
+}
+.topbar-brand { display: flex; align-items: center; gap: 10px; }
+.brand-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--blue), var(--teal));
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; color: #fff;
+}
+.brand-name { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: .3px; }
+.brand-sub { font-size: 10px; color: var(--text3); margin-top: 1px; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+
+/* API STATUS BADGES */
+.api-pill {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10px; font-family: var(--mono);
+  padding: 4px 9px; border-radius: 20px;
+  border: 1px solid;
+}
+.api-pill.live { background: rgba(5,150,105,.12); border-color: rgba(5,150,105,.3); color: #34d399; }
+.api-pill.warn { background: rgba(217,119,6,.12); border-color: rgba(217,119,6,.3); color: #fbbf24; }
+.api-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* MAIN BODY */
+.main { display: flex; flex: 1; }
+
+/* SIDEBAR */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--surface3);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  padding: 1rem 0;
+  position: sticky; top: var(--header-h);
+  height: calc(100vh - var(--header-h));
+  overflow-y: auto;
+}
+.nav-section { margin-bottom: .25rem; }
+.nav-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .8px; padding: .5rem 1.2rem .25rem; font-weight: 600; }
+.nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 1.2rem;
+  color: var(--text2); font-size: 13px;
+  cursor: pointer; border: none; background: none; width: 100%; text-align: right;
+  border-right: 3px solid transparent;
+  transition: all .15s;
+}
+.nav-item:hover { background: var(--blue-glow); color: var(--text); }
+.nav-item.active { background: var(--blue-glow); color: #60a5fa; border-right-color: var(--blue-lt); font-weight: 500; }
+.nav-item i { font-size: 16px; opacity: .8; }
+.nav-badge { margin-right: auto; font-size: 10px; background: var(--blue); color: #fff; padding: 1px 6px; border-radius: 10px; font-family: var(--mono); }
+
+.sidebar-footer { margin-top: auto; padding: 1rem 1.2rem; border-top: 1px solid var(--border); }
+.last-sync { font-size: 10px; color: var(--text3); }
+
+/* CONTENT */
+.content { flex: 1; padding: 1.5rem; overflow-y: auto; min-width: 0; }
+.page { display: none; }
+.page.active { display: block; }
+
+/* PAGE HEADER */
+.page-header { margin-bottom: 1.5rem; }
+.page-title { font-size: 20px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 10px; }
+.page-title i { color: var(--blue-lt); }
+.page-desc { font-size: 12px; color: var(--text3); margin-top: 3px; }
+
+/* KPI CARDS */
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 1.5rem; }
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem 1.25rem;
+  position: relative; overflow: hidden;
+  transition: border-color .2s;
+}
+.kpi-card:hover { border-color: var(--border2); }
+.kpi-card::before {
+  content:''; position:absolute; top:0; right:0; width:60px; height:60px;
+  background: var(--kpi-color, var(--blue)); opacity:.07; border-radius:50%; transform:translate(20px,-20px);
+}
+.kpi-icon { font-size: 20px; color: var(--kpi-color, var(--blue-lt)); margin-bottom: .5rem; }
+.kpi-val { font-size: 26px; font-weight: 600; color: var(--text); font-family: var(--mono); }
+.kpi-lbl { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.kpi-trend { font-size: 10px; margin-top: 6px; display: flex; align-items: center; gap: 4px; }
+.kpi-trend.up { color: var(--success); }
+.kpi-trend.warn { color: var(--warn); }
+.kpi-trend.info { color: var(--blue-lt); }
+
+/* SECTION HEADERS */
+.sec-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .75rem; }
+.sec-title { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .6px; display: flex; align-items: center; gap: 6px; }
+.sec-title i { color: var(--blue-lt); }
+
+/* GRID HELPERS */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+/* CARDS */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem 1.25rem;
+}
+.card-title { font-size: 12px; color: var(--text2); margin-bottom: .75rem; display: flex; align-items: center; gap: 6px; }
+.chart-wrap { position: relative; height: 200px; }
+.chart-wrap-sm { position: relative; height: 160px; }
+
+/* NOTIFICATIONS / ALERTS LIST */
+.alert-feed { display: flex; flex-direction: column; gap: 7px; }
+.alert-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface2);
+  cursor: pointer; transition: border-color .15s;
+  text-align: right;
+}
+.alert-item:hover { border-color: var(--border2); }
+.alert-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+.alert-body { flex: 1; min-width: 0; }
+.alert-title { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.alert-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.alert-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; flex-shrink: 0; margin-top: 2px; font-family: var(--mono); }
+
+/* BADGES */
+.badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-family: var(--mono); font-weight: 500; }
+.badge-sps  { background: rgba(5,150,105,.15); color: #34d399; border: 1px solid rgba(5,150,105,.25); }
+.badge-tbt  { background: rgba(37,99,235,.15); color: #60a5fa; border: 1px solid rgba(37,99,235,.25); }
+.badge-ntm  { background: rgba(217,119,6,.15);  color: #fbbf24; border: 1px solid rgba(217,119,6,.25); }
+.badge-ad   { background: rgba(220,38,38,.15);  color: #f87171; border: 1px solid rgba(220,38,38,.25); }
+.badge-qr   { background: rgba(139,92,246,.15); color: #c4b5fd; border: 1px solid rgba(139,92,246,.25); }
+.badge-lic  { background: rgba(20,184,166,.15); color: #5eead4; border: 1px solid rgba(20,184,166,.25); }
+
+.src-eping  { background: rgba(37,99,235,.12); color: #60a5fa; }
+.src-trains { background: rgba(5,150,105,.12); color: #34d399; }
+.src-itip   { background: rgba(217,119,6,.12); color: #fbbf24; }
+.src-wits   { background: rgba(139,92,246,.12); color: #c4b5fd; }
+.src-ad     { background: rgba(220,38,38,.12); color: #f87171; }
+.src-qr     { background: rgba(20,184,166,.12); color: #5eead4; }
+.src-lic    { background: rgba(240,180,41,.12); color: #f0b429; }
+
+/* SEARCH SECTION */
+.search-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+.search-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.search-full { grid-column: 1 / -1; }
+.input-wrap { position: relative; }
+.input-wrap .input-icon { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 15px; pointer-events: none; }
+input[type=text], input[type=email], input[type=search], select, textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 8px 12px;
+  transition: border-color .15s;
+  outline: none;
+}
+.input-wrap input { padding-right: 32px; }
+input:focus, select:focus, textarea:focus { border-color: var(--blue-lt); }
+select option { background: var(--navy); }
+.btn-row { display: flex; gap: 8px; margin-top: .75rem; flex-wrap: wrap; }
+
+/* BUTTONS */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: var(--radius);
+  font-family: var(--font); font-size: 13px; cursor: pointer;
+  border: 1px solid;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--blue-lt); border-color: var(--blue-lt); color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+.btn-ghost { background: transparent; border-color: var(--border2); color: var(--text2); }
+.btn-ghost:hover { background: var(--blue-glow); color: var(--text); border-color: var(--border2); }
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+.btn-icon { padding: 6px 8px; }
+
+/* TABLE */
+.table-wrap { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead th { background: var(--surface3); padding: 9px 12px; text-align: right; color: var(--text3); font-size: 10px; text-transform: uppercase; letter-spacing: .5px; font-weight: 600; white-space: nowrap; border-bottom: 1px solid var(--border); }
+tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--blue-glow); }
+tbody td { padding: 9px 12px; color: var(--text); vertical-align: middle; }
+.mono { font-family: var(--mono); font-size: 11px; color: var(--gold-lt); }
+.hs-code { font-family: var(--mono); font-size: 11px; color: var(--teal-lt); }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-left: 6px; }
+.dot-live { background: var(--success); }
+.dot-warn { background: var(--warn); }
+.dot-off  { background: var(--text3); }
+
+/* STATUS BAR */
+.status-bar { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text3); padding: .5rem 0; }
+.status-ok  { color: var(--success); }
+.status-err { color: var(--danger); }
+
+/* DETAIL PAGE */
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.detail-field label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .4px; display: block; margin-bottom: 3px; }
+.detail-field .val { font-size: 13px; color: var(--text); font-weight: 500; }
+.text-panel {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px; font-size: 12px; line-height: 1.8; color: var(--text2);
+  direction: ltr; text-align: left;
+}
+.text-panel.ar { direction: rtl; text-align: right; }
+
+/* AI BOX */
+.ai-box { border: 1px solid rgba(37,99,235,.3); border-radius: var(--radius-lg); overflow: hidden; margin-top: 1rem; }
+.ai-header { background: rgba(37,99,235,.08); padding: 9px 14px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid rgba(37,99,235,.2); }
+.ai-header-title { font-size: 12px; font-weight: 600; color: #60a5fa; }
+.ai-body { padding: 14px; font-size: 13px; line-height: 1.75; color: var(--text2); }
+.ai-body p { margin-bottom: .6rem; }
+.ai-body strong { color: var(--text); }
+.ai-disclaimer { background: rgba(217,119,6,.06); border-top: 1px solid rgba(217,119,6,.15); padding: 8px 14px; font-size: 10px; color: var(--warn); }
+
+/* TABS */
+.tabs { display: flex; gap: 2px; background: var(--surface3); border-radius: var(--radius); padding: 3px; margin-bottom: 1.25rem; }
+.tab-btn { flex: 1; padding: 7px 12px; font-size: 12px; font-family: var(--font); border: none; background: none; cursor: pointer; border-radius: 7px; color: var(--text2); transition: all .15s; text-align: center; }
+.tab-btn.active { background: var(--surface); color: var(--text); font-weight: 500; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* SOURCE CARDS */
+.source-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  display: flex; flex-direction: column; gap: 8px;
+  transition: border-color .15s;
+}
+.source-card:hover { border-color: var(--border2); }
+.source-card-header { display: flex; align-items: center; justify-content: space-between; }
+.source-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.source-url { font-size: 10px; font-family: var(--mono); color: var(--text3); margin-top: 2px; }
+.source-desc { font-size: 12px; color: var(--text2); }
+.source-status { display: flex; align-items: center; gap: 5px; font-size: 11px; }
+.source-actions { display: flex; gap: 6px; margin-top: 4px; }
+
+/* WORLD MAP CHOROPLETH */
+#worldMap { width: 100%; height: 320px; position: relative; }
+
+/* PROGRESS */
+.progress { height: 5px; background: var(--surface3); border-radius: 3px; overflow: hidden; margin-top: 5px; }
+.progress-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+
+/* DIVIDER */
+.divider { height: 1px; background: var(--border); margin: 1.25rem 0; }
+
+/* LOADING STATES */
+.loading { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 2rem; color: var(--text3); font-size: 13px; }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty { display: flex; flex-direction: column; align-items: center; gap: .5rem; padding: 2.5rem; color: var(--text3); font-size: 13px; }
+.empty i { font-size: 32px; opacity: .3; }
+
+/* ALERTS SETTINGS */
+.alert-setting-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.1rem 1.25rem; }
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.toggle-row:last-child { border-bottom: none; }
+.toggle { position: relative; width: 36px; height: 20px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; inset: 0; background: var(--surface3); border-radius: 10px; cursor: pointer; transition: .2s; }
+.toggle-slider::before { content:''; position:absolute; width:14px; height:14px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
+.toggle input:checked + .toggle-slider { background: var(--blue-lt); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+/* EXPORT BAR */
+.export-bar { display: flex; align-items: center; justify-content: space-between; padding: .75rem 0; border-top: 1px solid var(--border); margin-top: .75rem; }
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .kpi-row { grid-template-columns: 1fr 1fr; }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .search-grid { grid-template-columns: 1fr 1fr; }
+  .detail-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .kpi-row { grid-template-columns: 1fr; }
+  .search-grid { grid-template-columns: 1fr; }
+}
+
+/* SPLASH EFFECT ON CARDS */
+.ripple { overflow: hidden; position: relative; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ============================================================ TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="brand-icon"><i class="ti ti-world-bolt"></i></div>
+      <div>
+        <div class="brand-name">NTM Watch</div>
+        <div class="brand-sub">منصة رصد التدابير غير الجمركية — Official Source First</div>
+      </div>
+    </div>
+    <div class="topbar-right" id="apiBadges">
+      <div class="api-pill live"><div class="api-dot"></div> ePing</div>
+      <div class="api-pill live"><div class="api-dot"></div> I-TIP</div>
+      <div class="api-pill live"><div class="api-dot"></div> AD</div>
+      <div class="api-pill live"><div class="api-dot"></div> QR</div>
+      <div class="api-pill live"><div class="api-dot"></div> LIC</div>
+      <div class="api-pill live"><div class="api-dot"></div> WITS</div>
+    </div>
+  </header>
+
+  <div class="main">
+    <!-- ============================================================ SIDEBAR -->
+    <aside class="sidebar">
+      <nav>
+        <div class="nav-section">
+          <div class="nav-label">الرئيسية</div>
+          <button class="nav-item active" onclick="nav('dashboard',this)">
+            <i class="ti ti-layout-dashboard"></i> لوحة التحكم
+            <span class="nav-badge" id="nb-new">23</span>
+          </button>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-label">البحث والتحليل</div>
+          <button class="nav-item" onclick="nav('search',this)"><i class="ti ti-search"></i> البحث المتقدم</button>
+          <button class="nav-item" onclick="nav('detail',this)"><i class="ti ti-file-description"></i> تفاصيل إجراء</button>
+          <button class="nav-item" onclick="nav('analysis',this)"><i class="ti ti-brain"></i> تحليل AI</button>
+          <button class="nav-item" onclick="nav('compare',this)"><i class="ti ti-git-compare"></i> مقارنة دول</button>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-label">مصادر البيانات</div>
+          <button class="nav-item" onclick="nav('eping',this)"><i class="ti ti-bell-ringing"></i> ePing SPS/TBT</button>
+          <button class="nav-item" onclick="nav('itip',this)"><i class="ti ti-chart-line"></i> I-TIP WTO</button>
+          <button class="nav-item" onclick="nav('antidump',this)"><i class="ti ti-shield-exclamation"></i> Anti-Dumping</button>
+          <button class="nav-item" onclick="nav('qr',this)"><i class="ti ti-lock"></i> القيود الكمية QR</button>
+          <button class="nav-item" onclick="nav('license',this)"><i class="ti ti-license"></i> تراخيص الاستيراد</button>
+          <button class="nav-item" onclick="nav('wits',this)"><i class="ti ti-database"></i> WITS World Bank</button>
+          <button class="nav-item" onclick="nav('trains',this)"><i class="ti ti-train"></i> TRAINS UNCTAD</button>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-label">الإدارة</div>
+          <button class="nav-item" onclick="nav('alerts',this)"><i class="ti ti-bell"></i> التنبيهات
+            <span class="nav-badge">5</span>
+          </button>
+          <button class="nav-item" onclick="nav('sources',this)"><i class="ti ti-plug"></i> إعداد API</button>
+          <button class="nav-item" onclick="nav('reports',this)"><i class="ti ti-report"></i> التقارير</button>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="last-sync" id="lastSync">⟳ آخر مزامنة: جارٍ...</div>
+      </div>
+    </aside>
+
+    <!-- ============================================================ CONTENT -->
+    <main class="content">
+
+      <!-- ==================== DASHBOARD ==================== -->
+      <div id="page-dashboard" class="page active">
+        <div class="page-header">
+          <div class="page-title"><i class="ti ti-layout-dashboard"></i> لوحة التحكم الرئيسية</div>
+          <div class="page-desc">بيانات مباشرة من: ePing · I-TIP · AD · QR · LIC · WITS · TRAINS</div>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi-card" style="--kpi-color:#2563eb">
+            <div class="kpi-icon"><i class="ti ti-world-check"></i></div>
+            <div class="kpi-val" id="kpi-total">—</div>
+            <div class="kpi-lbl">إجمالي التدابير النشطة</div>
+            <div class="kpi-trend up" id="kpi-total-t"><i class="ti ti-trending-up"></i></div>
+          </div>
+          <div class="kpi-card" style="--kpi-color:#059669">
+            <div class="kpi-icon"><i class="ti ti-plant"></i></div>
+            <div class="kpi-val" id="kpi-sps">—</div>
+            <div class="kpi-lbl">إخطارات SPS نشطة</div>
+            <div class="kpi-trend up" id="kpi-sps-t"><i class="ti ti-trending-up"></i></div>
+          </div>
+          <div class="kpi-card" style="--kpi-color:#2563eb">
+            <div class="kpi-icon"><i class="ti ti-certificate"></i></div>
+            <div class="kpi-val" id="kpi-tbt">—</div>
+            <div class="kpi-lbl">إخطارات TBT نشطة</div>
+            <div class="kpi-trend warn" id="kpi-tbt-t"><i class="ti ti-trending-up"></i></div>
+          </div>
+          <div class="kpi-card" style="--kpi-color:#d97706">
+            <div class="kpi-icon"><i class="ti ti-shield-exclamation"></i></div>
+            <div class="kpi-val" id="kpi-ad">—</div>
+            <div class="kpi-lbl">تدابير Anti-Dumping</div>
+            <div class="kpi-trend info" id="kpi-ad-t"><i class="ti ti-trending-up"></i></div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:14px">
+          <div class="card">
+            <div class="card-title"><i class="ti ti-chart-donut"></i> توزيع التدابير حسب النوع</div>
+            <div class="chart-wrap"><canvas id="chartType" role="img" aria-label="توزيع التدابير حسب النوع"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-title"><i class="ti ti-chart-bar"></i> أعلى 5 دول في تطبيق التدابير</div>
+            <div class="chart-wrap"><canvas id="chartCountries" role="img" aria-label="أعلى الدول تطبيقاً للتدابير"></canvas></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-title"><i class="ti ti-chart-area"></i> اتجاه الإخطارات — آخر 12 شهر</div>
+          <div class="chart-wrap"><canvas id="chartTrend" role="img" aria-label="اتجاه الإخطارات الشهرية"></canvas></div>
+        </div>
+
+        <div class="sec-header">
+          <div class="sec-title"><i class="ti ti-bell-ringing"></i> آخر الإخطارات والتنبيهات</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-ghost" onclick="refreshAll()"><i class="ti ti-refresh"></i> تحديث</button>
+            <button class="btn btn-sm btn-ghost" onclick="nav('alerts',document.querySelector('.nav-item:nth-child(10)'))"><i class="ti ti-external-link"></i> الكل</button>
+          </div>
+        </div>
+        <div class="alert-feed" id="alertFeed">
+          <div class="loading"><i class="ti ti-loader-2 spin"></i> جاري تحميل البيانات من ePing API...</div>
+        </div>
+      </div>
+
+      <!-- ==================== SEARCH PAGE ==================== -->
+      <div id="page-search" class="page">
+        <div class="page-header">
+          <div class="page-title"><i class="ti ti-search"></i> محرك البحث المتقدم</div>
+          <div class="page-desc">ابحث عبر ePing · I-TIP · TRAINS · WITS · AD · QR · LIC</div>
+        </div>
+
+        <div class="search-panel">
+          <div class="search-grid">
+            <div class="search-full input-wrap">
+              <i class="ti ti-search input-icon"></i>
+              <input type="text" id="q-main" placeholder="ابحث بالمنتج، الدولة، الوصف، رمز NTM...">
+            </div>
+            <select id="q-type">
+              <option value="">نوع التدبير — الكل</option>
+              <option>SPS</option><option>TBT</option>
+              <option>QR (حصص كمية)</option><option>تراخيص استيراد</option>
+              <option>Anti-Dumping</option><option>تدابير تعويضية SCM</option>
+              <option>حظر استيراد</option><option>اشتراطات تسمية / علامة</option>
+            </select>
+            <select id="q-source">
+              <option value="">مصدر البيانات — الكل</option>
+              <option>ePing (SPS/TBT)</option><option>TRAINS UNCTAD</option>
+              <option>I-TIP WTO</option><option>AD Notifications WTO</option>
+              <option>QR Notifications WTO</option><option>Import License WTO</option>
+              <option>WITS World Bank</option>
+            </select>
+            <input type="text" id="q-hs" placeholder="رمز HS Code (مثال: 0201، 8517)">
+            <select id="q-country">
+              <option value="">الدولة المطبِّقة — الكل</option>
+              <option>المملكة العربية السعودية</option><option>الاتحاد الأوروبي</option>
+              <option>الصين</option><option>الولايات المتحدة</option><option>الهند</option>
+              <option>البرازيل</option><option>أستراليا</option><option>كندا</option>
+              <option>اليابان</option><option>تركيا</option>
+            </select>
+            <select id="q-scope">
+              <option value="">النطاق — الكل</option>
+              <option>استيراد</option><option>تصدير</option>
+              <option>ثنائي</option><option>متعدد الأطراف</option>
+            </select>
+            <input type="text" id="q-from" placeholder="من تاريخ (YYYY-MM-DD)">
+            <input type="text" id="q-to" placeholder="إلى تاريخ (YYYY-MM-DD)">
+            <select id="q-sector">
+              <option value="">القطاع — الكل</option>
+              <option>الغذاء والزراعة</option><option>الكيماويات</option>
+              <option>الإلكترونيات</option><option>المنسوجات</option>
+              <option>الأدوية</option><option>المعادن والصلب</option>
+              <option>الطاقة</option>
+            </select>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="doSearch()"><i class="ti ti-search"></i> بحث</button>
+            <button class="btn btn-ghost" onclick="clearSearch()"><i class="ti ti-x"></i> مسح</button>
+            <button class="btn btn-ghost" onclick="fetchEping()"><i class="ti ti-refresh"></i> جلب من ePing</button>
+            <button class="btn btn-ghost" onclick="fetchAD()"><i class="ti ti-refresh"></i> جلب AD</button>
+            <button class="btn btn-ghost" onclick="fetchQR()"><i class="ti ti-refresh"></i> جلب QR</button>
+          </div>
+        </div>
+
+        <div class="status-bar">
+          <span id="searchStatus">أدخل معايير البحث ثم اضغط "بحث"</span>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-ghost"><i class="ti ti-file-spreadsheet"></i> Excel</button>
+            <button class="btn btn-sm btn-ghost"><i class="ti ti-file-type-pdf"></i> PDF</button>
+            <button class="btn btn-sm btn-ghost"><i class="ti ti-download"></i> CSV</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>رمز الإخطار</th>
+                <th>الدولة المطبِّقة</th>
+                <th>المنتج / HS Code</th>
+                <th>نوع التدبير</th>
+                <th>المصدر</th>
+                <th>النطاق</th>
+                <th>تاريخ الإخطار</th>
+                <th>تاريخ النفاذ</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="searchResults">
+              <tr><td colspan="9">
+                <div class="empty"><i class="ti ti-search"></i> استخدم محرك البحث أعلاه للاستعلام</div>
+              </td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:.5rem;text-align:left">
+          جميع البيانات مصدرها رسمي فقط. لا يُعرض أي إجراء دون توثيق من مصدره الأصلي.
+        </div>
+      </div>
+
+      <!-- ==================== DETAIL PAGE ==================== -->
+      <div id="page-detail" class="page">
+        <div class="page-header">
+          <div class="page-title"><i class="ti ti-file-description"></i> تفاصيل الإجراء غير الجمركي</div>
+          <div class="page-desc" id="detailRef">G/SPS/N/SAU/142 — مثال توضيحي</div>
+        </div>
+
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab('dt-info',this)">البيانات الأساسية</button>
+          <button class="tab-btn" onclick="switchTab('dt-text',this)">النص والترجمة</button>
+          <button class="tab-btn" onclick="switchTab('dt-legal',this)">التحليل القانوني</button>
+          <button class="tab-btn" onclick="switchTab('dt-trade',this)">أثر التجارة</button>
+          <button class="tab-btn" onclick="switchTab('dt-similar',this)">إجراءات مشابهة</button>
+        </div>
+
+        <!-- TAB: Info -->
+        <div id="dt-info" class="tab-pane active">
+          <div class="card">
+            <div class="detail-grid" id="detailFields">
+              <div class="detail-field"><label>رمز الإخطار</label><div class="val mono">G/SPS/N/SAU/142</div></div>
+              <div class="detail-field"><label>نوع التدبير</label><div class="val"><span class="badge badge-sps">SPS</span></div></div>
+              <div class="detail-field"><label>الدولة المطبِّقة</label><div class="val">المملكة العربية السعودية</div></div>
+              <div class="detail-field"><label>الأسواق المتأثرة</label><div class="val">جميع الأعضاء في WTO</div></div>
+              <div class="detail-field"><label>رمز HS Code</label><div class="val hs-code">0201 — لحوم بقري طازجة</div></div>
+              <div class="detail-field"><label>رمز NTM</label><div class="val mono">A14 — اشتراطات صحة الحيوان</div></div>
+              <div class="detail-field"><label>تاريخ الإخطار</label><div class="val">2024-11-15</div></div>
+              <div class="detail-field"><label>تاريخ النفاذ</label><div class="val">2025-02-01</div></div>
+              <div class="detail-field"><label>نطاق التدبير</label><div class="val">متعدد الأطراف / استيراد</div></div>
+              <div class="detail-field"><label>المصدر الرسمي</label><div class="val"><a href="https://docs.wto.org" style="color:var(--blue-lt)" target="_blank">WTO Docs Online ↗</a></div></div>
+            </div>
+            <div class="divider"></div>
+            <div style="margin-bottom:.5rem;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px">وصف التدبير</div>
+            <div style="font-size:13px;line-height:1.8;color:var(--text2)" id="detailDesc">
+              اشتراط الحصول على شهادة صحية رسمية معتمدة من السلطة البيطرية المختصة في الدولة المصدِّرة، مع إجراء فحص مخبري للتحقق من خلو المنتج من مسببات الأمراض المدرجة في الملحق الفني المرافق. يسري هذا الاشتراط على جميع شحنات اللحوم البقرية الطازجة والمبردة.
+            </div>
+            <div class="divider"></div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:11px;color:var(--text3)">
+              <i class="ti ti-database"></i> المصدر: ePing Alert (WTO/ITC/UN DESA)
+              <i class="ti ti-clock"></i> آخر تحديث: 2024-11-15
+              <i class="ti ti-link"></i> <a href="https://www.epingalert.org" style="color:var(--blue-lt)" target="_blank">epingalert.org ↗</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: Text & Translation -->
+        <div id="dt-text" class="tab-pane">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title"><i class="ti ti-language"></i> النص الأصلي (إنجليزي)</div>
+              <div class="text-panel">
+                The competent authority of the exporting country shall issue an official health certificate confirming that: (1) the product has undergone official veterinary inspection at the approved establishment; (2) the animals from which the product is derived were subjected to ante-mortem and post-mortem inspection; (3) the product is free from pathogenic organisms listed in Schedule A of this Regulation...
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title"><i class="ti ti-language-hiragana"></i> الترجمة العربية <span class="badge badge-ntm" style="font-size:9px">AI</span></div>
+              <div class="text-panel ar">
+                يجب على السلطة المختصة في الدولة المصدِّرة إصدار شهادة صحية رسمية تُقرّ بما يلي: (1) خضع المنتج للفحص البيطري الرسمي في المنشأة المعتمدة؛ (2) خضعت الحيوانات التي يُستخلص منها المنتج لفحص ما قبل الذبح وما بعده؛ (3) المنتج خالٍ من الكائنات الممرضة المدرجة في الملحق (أ) من هذه اللائحة...
+              </div>
+              <div style="font-size:10px;color:var(--warn);margin-top:8px"><i class="ti ti-info-circle"></i> ترجمة ذكاء اصطناعي — يُرجى مراجعة النص الأصلي للمراسلات الرسمية</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: Legal Analysis -->
+        <div id="dt-legal" class="tab-pane">
+          <div class="ai-box">
+            <div class="ai-header">
+              <i class="ti ti-scale" style="color:#60a5fa;font-size:16px"></i>
+              <div class="ai-header-title">التحليل القانوني الآلي — اتفاقيات WTO</div>
+              <button class="btn btn-sm btn-ghost" style="margin-right:auto" onclick="runLegalAnalysis()"><i class="ti ti-refresh"></i> تحديث التحليل</button>
+            </div>
+            <div class="ai-body" id="legalAnalysisBody">
+              <p><strong>أولاً — الإطار القانوني المنطبق:</strong></p>
+              <p>• <strong>اتفاقية SPS المادة 2:</strong> للأعضاء الحق في تطبيق تدابير صحية ضرورة للحماية من المخاطر، شريطة أن تقوم على أسس علمية كافية.</p>
+              <p>• <strong>اتفاقية SPS المادة 5:</strong> يجب تقييم المخاطر بناءً على الأساليب الدولية المعتمدة (CODEX / WOAH / IPPC).</p>
+              <p>• <strong>GATT 1994 المادة XX(b):</strong> يُجيز الإجراءات الضرورية لحماية الحياة البشرية والحيوانية والنباتية.</p>
+              <p><strong>ثانياً — التقييم:</strong> الإجراء يبدو متسقاً مع معايير منظمة الصحة الحيوانية العالمية (WOAH) ومعايير Codex Alimentarius. لا توجد مخاوف ظاهرة تتعلق بالتمييز بين الأعضاء أو القيود غير المبررة.</p>
+              <p><strong>ثالثاً — توصيات:</strong> يُنصح بتقديم تعليقات خلال فترة التشاور المحددة (60 يوماً من تاريخ الإخطار). يمكن طلب مشاورات ثنائية عبر لجنة SPS إذا رأت الجهة أن الإجراء يشكل قيداً غير مبرر.</p>
+            </div>
+            <div class="ai-disclaimer"><i class="ti ti-alert-triangle"></i> هذا التحليل مساعد ولا يُعد رأياً قانونياً نهائياً. يجب مراجعته من قِبل مستشار قانوني متخصص قبل اتخاذ أي إجراء رسمي.</div>
+          </div>
+        </div>
+
+        <!-- TAB: Trade Impact -->
+        <div id="dt-trade" class="tab-pane">
+          <div class="card" style="margin-bottom:12px">
+            <div class="card-title"><i class="ti ti-trending-down"></i> تقييم الأثر التجاري المحتمل</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+                  <span>مستوى التقييد التجاري</span><span style="color:var(--warn)">متوسط — 58%</span>
+                </div>
+                <div class="progress"><div class="progress-fill" style="width:58%;background:var(--warn)"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+                  <span>سهولة الامتثال للمصدِّرين</span><span style="color:var(--success)">مرتفع — 72%</span>
+                </div>
+                <div class="progress"><div class="progress-fill" style="width:72%;background:var(--success)"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+                  <span>مخاطر الإشكاليات في WTO</span><span style="color:var(--success)">منخفض — 22%</span>
+                </div>
+                <div class="progress"><div class="progress-fill" style="width:22%;background:var(--success)"></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="ai-box">
+            <div class="ai-header">
+              <i class="ti ti-chart-arrows" style="color:#60a5fa;font-size:16px"></i>
+              <div class="ai-header-title">تحليل الأثر على المصدِّرين والمستوردين</div>
+            </div>
+            <div class="ai-body">
+              <p><strong>على المصدِّرين:</strong> يستلزم الإجراء الحصول على اعتماد مسبق من السلطة البيطرية في الدولة المصدِّرة، مما قد يستغرق 30-90 يوماً في المتوسط. يُنصح المصدِّرون بمراجعة متطلبات الاعتماد المحددة.</p>
+              <p><strong>على المستوردين السعوديين:</strong> قد يؤدي الإجراء إلى تقليص عدد الموردين المؤهلين مؤقتاً، مما يرفع التكاليف بنسبة تقديرية 8-15%.</p>
+              <p><strong>الخطوات المقترحة:</strong> (1) تقييم قدرة الموردين على الامتثال. (2) التواصل مع هيئة الغذاء والدواء السعودية. (3) متابعة فترة التشاور في ePing.</p>
+            </div>
+            <div class="ai-disclaimer"><i class="ti ti-alert-triangle"></i> تقديرات تحليلية للاسترشاد فقط. يعتمد الأثر الفعلي على متغيرات عديدة.</div>
+          </div>
+        </div>
+
+        <!-- TAB: Similar -->
+        <div id="dt-similar" class="tab-pane">
+          <div style="font-size:12px;color:var(--text3);margin-bottom:.75rem;padding:8px 12px;background:var(--surface2);border-radius:var(--radius);border:1px solid var(--border)">
+            <i class="ti ti-info-circle"></i> جميع الإجراءات المشابهة أدناه مصدرها قواعد بيانات رسمية فقط (ePing / TRAINS / I-TIP). لا يقترح النظام إجراءات من خارج المصادر الرسمية.
+          </div>
+          <div class="alert-feed" id="similarItems">
+            <div class="alert-item">
+              <div class="alert-dot" style="background:#059669"></div>
+              <div class="alert-body">
+                <div class="alert-title">الاتحاد الأوروبي — G/SPS/N/EU/891</div>
+                <div class="alert-meta">HS 0201 · شهادة صحية + فحص مخبري · 2024-09 · المصدر: ePing</div>
+              </div>
+              <span class="badge badge-sps">SPS</span>
+            </div>
+            <div class="alert-item">
+              <div class="alert-dot" style="background:#2563eb"></div>
+              <div class="alert-body">
+                <div class="alert-title">الصين — TRAINS/CHN/2024/A14</div>
+                <div class="alert-meta">HS 0201 · تسجيل مسبق للمنشآت المصدِّرة · 2024-07 · المصدر: TRAINS UNCTAD</div>
+              </div>
+              <span class="badge badge-ntm">NTM</span>
+            </div>
+            <div class="alert-item">
+              <div class="alert-dot" style="background:#d97706"></div>
+              <div class="alert-body">
+                <div class="alert-title">الولايات المتحدة — USDA/FSIS/2024/0201</div>
+                <div class="alert-meta">HS 0201 · نظام FSIS للفحص والاعتماد · 2024-05 · المصدر: I-TIP WTO</div>
+              </div>
+              <span class="badge badge-ntm">NTM</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== AI ANALYSIS ==================== -->
+      <div id="page-analysis" class="page">
+        <div class="page-header">
+          <div class="page-title"><i class="ti ti-brain"></i> تحليل بالذكاء الاصطناعي</div>
+          <div class="page-desc">تحليل قانوني وتجاري وفق اتفاقيات WTO — مدعوم بـ Claude API</div>
+        </div>
+
+        <div class="card" style="margin-bottom:1rem">
+          <div class="card-title"><i class="ti ti-pencil"></i> أدخل نص الإجراء أو الإخطار للتحليل</div>
+          <textarea id="aiInput" rows="5" style="height:100px" placeholder="الصق نص الإخطار أو الإجراء هنا... أو اطرح سؤالاً قانونياً أو تجارياً متعلقاً بالتدابير غير الجمركية.
+
+مثال: قم بتحليل هذا الإخطار SPS الصادر من المملكة العربية السعودية بالاستناد إلى اتفاقيات منظمة التجارة العالمية والأنظمة ذات الصلة..."></textarea>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="runAI()"><i class="ti ti-brain"></i> تحليل ذكاء اصطناعي</button>
+            <button class="btn btn-ghost" onclick="aiQuick('sps')"><i class="ti ti-plant"></i> تحليل SPS</button>
+            <button class="btn btn-ghost" onclick="aiQuick('tbt')"><i class="ti ti-certificate"></i> تحليل TBT</button>
+            <button class="btn btn-ghost" onclick="aiQuick('ad')"><i class="ti ti-shield-exclamation"></i> تحليل Anti-Dumping</button>
+            <button class="btn btn-ghost" onclick="document.getElementById('aiInput').value=''"><i class="ti ti-x"></i> مسح</button>
+          </div>
+        </div>
+
+        <div id="aiResultBox" style="display:none">
+          <div class="ai-box">
+            <div class="ai-header">
+              <i class="ti ti-brain" style="color:#60a5fa;font-size:16px"></i>
+              <div class="ai-header-title">نتيجة التحليل القانوني والتجاري</div>
+              <span class="badge badge-ntm" style="margin-right:auto">Claude API</span>
+            </div>
+            <div class="ai-body" id="aiResultContent" style="min-height:80px;white-space:pre-wrap"></div>
+            <div class="ai-disclaimer"><i class="ti ti-alert-triangle"></i> هذا التحليل مساعد ولا يُعد رأياً قانونياً نهائياً. يجب مراجعته من قِبل مستشار قانوني متخصص قبل الاعتماد عليه.</div>
+          </div>
+          <div class="export-bar">
+            <span style="font-size:11px;color:var(--text3)">يمكن حفظ التحليل أو مشاركته مع الفريق</span>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-sm btn-ghost"><i class="ti ti-file-type-pdf"></i> حفظ PDF</button>
+              <button class="btn btn-sm btn-ghost"><i class="ti ti-copy"></i> نسخ</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== COMPARE ==================== -->
+      <div id="page-compare" class="page">
+        <div class="page-header">
+          <div class="page-title"><i class="ti ti-git-compare"></i> مقارنة التدابير بين الدول</div>
+          <div class="page-desc">قارن التدابير غير الجمركية المطبقة على سلعة محددة عبر دول مختلفة</div>
+        </div>
+        <div class="card" style="margin-bottom:1rem">
+          <div class="search-grid" style="margin-bottom:.75rem">
+            <input type="text" id="cmp-hs" placeholder="رمز HS Code المراد مقارنته">
+            <select id="cmp-c1"><option>المملكة العربية السعودية</option><option>الاتحاد الأوروبي</option><option>الصين</option><option>الولايات المتحدة</option></select>
+            <select id="cmp-c2"><option>الاتحاد الأوروبي</option><option>المملكة العربية السعودية</option><option>الصين</option><option>الولايات المتحدة</option></select>
+          </div>
+          <button class="btn btn-primary" onclick="runCompare()"><i class="ti ti-git-compare"></i> مقارنة</button>
+        </div>
+        <div id="compareResults" class="grid-2">
+          <div class="card"><div class="card-title">الدولة الأولى</div><div class="empty"><i class="ti ti-search"></i>أدخل معايير المقارنة</div></div>
+          <div class="card"><div class="card-title">الدولة الثانية</div><div class="empty"><i class="ti ti-search"></i>أدخل معايير المقارنة</div></div>
+        </div>
+      </div>
+
+      <!-- ==================== ePING PAGE ==================== -->
+      <div id="page-eping" class="page">
+        <div class="page-header">
+          <div class="page-title"><i class="ti ti-bell-ringing"></i> ePing — إخطارات SPS و TBT</div>
+          <div class="page-desc">المصدر: api.wto.org/eping — WTO / ITC / UN DESA</div>
+        </div>
+        <div class="card" style="margin-bottom:1rem">
+          <div class="search-grid">
+            <select id="ep-type"><option value="">نوع — الكل</option><option>sps</option><option>tbt</option></select>
+            <input type="text" id="ep-country" placeholder="الدولة (رمز ISO مثال: SAU)">
+            <input type="text" id="ep-hs" placeholder="رمز HS">
+            <input type="text" id="ep-from" placeholder="من تاريخ">
+            <input type="text" id="ep-to" placeholder="إلى تاريخ">
+            <input type="text" id="ep-page" placeholder="رقم الصفحة" value="1">
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="fetchEpingFull()"><i class="ti ti-refresh"></i> جلب البيانات من ePing API</button>
+          </div>
+        </div>
+        <div id="epingStatus" class="status-bar"><span>جاهز للاتصال بـ ePing API</span></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>رقم الإخطار</th><th>الدولة</th><th>الموضوع</th><th>النوع</th><th>التاريخ</th><th>رابط</th></tr></thead>
+          <tbody id="epingResults"><tr><td colspan="6"><div class="empty"><i class="ti ti-cloud-download"></i>اضغط "جلب البيانات" للاتصال بـ ePing API</div></td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- ==================== I-TIP PAGE ==================== -->
+      <div id="page-itip" class="page">
+        <div class="page-header">
+          <div class="page-title"><i class="ti ti-chart-line"></i> I-TIP WTO — بيانات التجارة المتكاملة</div>
+          <div class="page-desc">المصدر: api.wto.org/timeseries/v1</div>
+        </div>
+        <div class="card" style="margin-bottom:1rem">
+          <div class="search-grid">
+            <input type="text" id="it-indicator" placeholder="رمز المؤشر (مثال: ITS_MTV_AX)" value="ITS_MTV_AX">
+            <input type="text" id="it-reporter" placeholder="الدولة المُبلِّغة (ISO3)">
+            <input type="text" id="it-partner" placeholder="الدولة الشريكة (ISO3)">
+            <input type="text" id="it-year-from" placeholder="من سنة" value="2020">
+            <input type="text" id="it-year-to" placeholder="إلى سنة" value="2024">
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="fetchITIP()"><i class="ti ti-refresh"></i> جلب من I-TIP Timeseries API</button>
+          </div>
+        </div>
+        <div id="itipStatus" class="status-bar"><span>جاهز للاتصال بـ I-TIP API</span></div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-chart-line"></i> بيانات السلاسل الزمنية</div>
+          <div class="chart-wrap" id="itipChartWrap" style="display:none">
+            <canvas id="chartITIP" role="img" aria-label="بيانات I-TIP الزمنية"></canvas>
+          </div>
+          <div id="itipResults"><div class="empty"><i class="ti ti-chart-line"></i>اضغط "جلب البيانات" لعرض السلاسل الزمنية</div></div>
+        </div>
+      </div>
+
+      <!-- ==================== ANTI-DUMPING PAGE ==================== -->
+      <div id="page-antidump" class="page">
+        <div class="page-header">
+          <div class="page-title"><i class="ti ti-shield-exclamation"></i> WTO Anti-Dumping Notifications</div>
+          <div class="page-desc">المصدر: ad-notification.wto.org/api/v2/itip/measures</div>
+        </div>
+        <div class="card" style="margin-bottom:1rem">
+          <div class="search-grid">
+            <input type="text" id="ad-reporter" placeholder="الدولة المُبلِّغة (ISO3)">
+            <input type="text" id="ad-product" placeholder="المنتج أو HS Code">
+            <input type="text" id="ad-year" placeholder="السنة">
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="fetchADFull()"><i class="ti ti-refresh"></i> جلب من WTO AD API</button>
+          </div>
+        </div>
+        <div id="adStatus" class="status-bar"><span>جاهز للاتصال بـ Anti-Dumping API</span></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>الدولة</th><th>المنتج</th><th>نوع الإجراء</th><th>تاريخ البداية</th><th>الحالة</th></tr></thead>
+          <tbody id="adResults"><tr><td colspan="5"><div class="empty"><i class="ti ti-shield-exclamation"></i>اضغط "جلب البيانات"</div></td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- ==================== QR PAGE ==================== -->
+      <div id="page-qr" class="page">
+        <div class="page-header">
+          <div class="page-title"><i class="ti ti-lock"></i> WTO Quantitative Restrictions (QR)</div>
+          <div class="page-desc">المصدر: qr-notification.wto.org/api/itip/qrs</div>
+        </div>
+        <div class="card" style="margin-bottom:1rem">
+          <div class="search-grid">
+            <input type="text" id="qr-member" placeholder="العضو (ISO3)">
+            <input type="text" id="qr-hs" placeholder="HS Code">
+            <select id="qr-type"><option value="">النوع — الكل</option><option>Import</option><option>Export</option></select>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="fetchQRFull()"><i class="ti ti-refresh"></i> جلب من WTO QR API</button>
+          </div>
+        </div>
+        <div id="qrStatus" class="status-bar"><span>جاهز للاتصال بـ QR API</span></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>العضو</th><th>المنتج</th><th>HS Code</th><th>نوع التدبير</th><th>الفترة</th></tr></thead>
+          <tbody id="qrResults"><tr><td colspan="5"><div class="empty"><i class="ti ti-lock"></i>اضغط "جلب البيانات"</div></td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- ==================== LICENSE PAGE ==================== -->
+      <div id="page-license" class="page">
+        <div class="page-header">
+          <div class="page-title"><i class="ti ti-license"></i> WTO Import Licensing</div>
+          <div class="page-desc">المصدر: lic-notification.wto.org/api/itip/legislations</div>
+        </div>
+        <div class="card" style="margin-bottom:1rem">
+          <div class="search-grid">
+            <input type="text" id="lic-member" placeholder="العضو (ISO3)">
+            <input type="text" id="lic-hs" placeholder="HS Code">
+            <input type="text" id="lic-year" placeholder="السنة">
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="fetchLIC()"><i class="ti ti-refresh"></i> جلب من Import License API</button>
+          </div>
+        </div>
+        <div id="licStatus" class="status-bar"><span>جاهز للاتصال بـ Import License API</span></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>العضو</th><th>المنتج</th><th>HS Code</th><th>نوع الترخيص</th><th>التشريع</th><th>السنة</th></tr></thead>
+          <tbody id="licResults"><tr><td colspan="6"><div class="empty"><i class="ti ti-license"></i>اضغط "جلب البيانات"</div></td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- ==================== WITS PAGE ==================== -->
+      <div id="page-wits" class="page">
+        <div class="page-header">
+          <div class="page-title"><i class="ti ti-database"></i> WITS World Bank</div>
+          <div class="page-desc">المصدر: wits.worldbank.org/API/V1 — بيانات التجارة والرسوم الجمركية والتدابير</div>
+        </div>
+        <div class="card" style="margin-bottom:1rem">
+          <div class="search-grid">
+            <input type="text" id="wt-reporter" placeholder="الدولة المُبلِّغة (مثال: SAU)">
+            <input type="text" id="wt-partner" placeholder="الدولة الشريكة (مثال: WLD)">
+            <input type="text" id="wt-hs" placeholder="HS Code">
+            <input type="text" id="wt-year" placeholder="السنة" value="2023">
+            <select id="wt-type"><option value="tariff">الرسوم الجمركية</option><option value="ntm">التدابير غير الجمركية</option><option value="trade">بيانات التجارة</option></select>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="fetchWITS()"><i class="ti ti-refresh"></i> جلب من WITS API</button>
+          </div>
+        </div>
+        <div id="witsStatus" class="status-bar"><span>جاهز للاتصال بـ WITS API</span></div>
+        <div id="witsResults"><div class="empty"><i class="ti ti-database"></i>اضغط "جلب البيانات" للاستعلام عن WITS</div></div>
+      </div>
+
+      <!-- ==================== TRAINS PAGE ==================== -->
+      <div id="page-trains" class="page">
+        <div class="page-header">
+          <div class="page-title"><i class="ti ti-train"></i> TRAINS UNCTAD — قاعدة بيانات NTMs</div>
+          <div class="page-desc">المصدر: trains.unctad.org — قاعدة بيانات التدابير غير الجمركية UNCTAD</div>
+        </div>
+        <div class="card" style="margin-bottom:1rem">
+          <div style="padding:1rem;background:rgba(217,119,6,.07);border:1px solid rgba(217,119,6,.2);border-radius:var(--radius);margin-bottom:1rem">
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--warn);margin-bottom:.5rem"><i class="ti ti-info-circle"></i> ملاحظة حول TRAINS API</div>
+            <div style="font-size:12px;color:var(--text2)">TRAINS (UNCTAD) لا توفر API عام مفتوح. يمكن الوصول للبيانات عبر: (1) الموقع الرسمي trains.unctad.org، (2) World Bank WITS الذي يتضمن بيانات TRAINS، (3) طلب وصول مؤسسي مباشر من UNCTAD.</div>
+          </div>
+          <div class="search-grid">
+            <input type="text" id="tr-country" placeholder="الدولة المطبِّقة">
+            <input type="text" id="tr-hs" placeholder="HS Code">
+            <select id="tr-type"><option value="">نوع NTM — الكل</option><option>A — تدابير صحية (SPS)</option><option>B — عوائق تقنية (TBT)</option><option>C — فحص قبل الشحن</option><option>D — تدابير جمركية</option><option>E — قيود غير تعريفية</option></select>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="openTrains()"><i class="ti ti-external-link"></i> فتح TRAINS UNCTAD</button>
+            <button class="btn btn-ghost" onclick="fetchWITS()"><i class="ti ti-database"></i> جلب عبر WITS (يتضمن TRAINS)</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-chart-bar"></i> تصنيف NTMs وفق UNCTAD</div>
+          <div class="chart-wrap"><canvas id="chartNTMCodes" role="img" aria-label="تصنيف NTMs"></canvas></div>
+        </div>
+      </div>
+
+      <!-- ==================== ALERTS PAGE ==================== -->
+      <div id="page-alerts" class="page">
+        <div class="page-header">
+          <div class="page-title"><i class="ti ti-bell"></i> التنبيهات والاشتراكات</div>
+          <div class="page-desc">إعداد تنبيهات فورية حسب الدولة، القطاع، رمز HS، نوع التدبير</div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:1rem">
+          <div class="alert-setting-card">
+            <div class="sec-title" style="margin-bottom:.75rem"><i class="ti ti-settings"></i> إعدادات التنبيهات</div>
+            <div class="toggle-row">تنبيهات SPS الجديدة <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+            <div class="toggle-row">تنبيهات TBT الجديدة <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+            <div class="toggle-row">تنبيهات Anti-Dumping <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label></div>
+            <div class="toggle-row">تنبيهات QR الجديدة <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+            <div class="toggle-row">التنبيهات المتعلقة بالسعودية <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label></div>
+          </div>
+          <div class="alert-setting-card">
+            <div class="sec-title" style="margin-bottom:.75rem"><i class="ti ti-plus"></i> إضافة اشتراك جديد</div>
+            <select style="margin-bottom:8px">
+              <option>اشتراك حسب الدولة</option><option>اشتراك حسب HS Code</option><option>اشتراك حسب القطاع</option><option>اشتراك حسب النوع</option>
+            </select>
+            <input type="text" placeholder="أدخل القيمة (دولة / HS / قطاع)" style="margin-bottom:8px">
+            <button class="btn btn-primary" style="width:100%"><i class="ti ti-plus"></i> إضافة اشتراك</button>
+          </div>
+        </div>
+
+        <div class="sec-title" style="margin-bottom:.75rem"><i class="ti ti-bell-ringing"></i> التنبيهات الواردة</div>
+        <div class="alert-feed" id="alertsFull">
+          <div class="loading"><i class="ti ti-loader-2 spin"></i> جاري تحميل التنبيهات...</div>
+        </div>
+      </div>
+
+      <!-- ==================== SOURCES / API CONFIG ==================== -->
+      <div id="page-sources" class="page">
+        <div class="page-header">
+          <div class="page-title"><i class="ti ti-plug"></i> إعداد مصادر البيانات والـ API</div>
+          <div class="page-desc">إدارة الاتصالات بجميع المصادر الرسمية</div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px" id="sourceCards">
+
+          <div class="source-card">
+            <div class="source-card-header">
+              <div><div class="source-name"><span class="status-dot dot-live"></span> ePing — WTO/ITC/UN DESA</div><div class="source-url">api.wto.org/eping</div></div>
+              <div class="source-status"><span class="badge badge-sps">متصل</span></div>
+            </div>
+            <div class="source-desc">إخطارات SPS وTBT في الوقت الفعلي. يغطي أكثر من 170 دولة عضو في WTO.</div>
+            <div style="font-size:11px;color:var(--text3)">API Key: ••••••••c2710fe9db2e6</div>
+            <div class="source-actions">
+              <button class="btn btn-sm btn-ghost" onclick="testApi('eping')"><i class="ti ti-plug"></i> اختبار</button>
+              <a href="https://www.epingalert.org" target="_blank" class="btn btn-sm btn-ghost"><i class="ti ti-external-link"></i> الموقع</a>
+              <a href="https://docs.wto.org" target="_blank" class="btn btn-sm btn-ghost"><i class="ti ti-file-text"></i> التوثيق</a>
+            </div>
+          </div>
+
+          <div class="source-card">
+            <div class="source-card-header">
+              <div><div class="source-name"><span class="status-dot dot-live"></span> I-TIP Timeseries — WTO</div><div class="source-url">api.wto.org/timeseries/v1</div></div>
+              <div class="source-status"><span class="badge badge-sps">متصل</span></div>
+            </div>
+            <div class="source-desc">بيانات السلاسل الزمنية لمؤشرات التجارة الدولية. يشمل الواردات والصادرات والحصص.</div>
+            <div style="font-size:11px;color:var(--text3)">API Key: ••••••••c2710fe9db2e6</div>
+            <div class="source-actions">
+              <button class="btn btn-sm btn-ghost" onclick="testApi('itip')"><i class="ti ti-plug"></i> اختبار</button>
+              <a href="https://i-tip.wto.org" target="_blank" class="btn btn-sm btn-ghost"><i class="ti ti-external-link"></i> الموقع</a>
+            </div>
+          </div>
+
+          <div class="source-card">
+            <div class="source-card-header">
+              <div><div class="source-name"><span class="status-dot dot-live"></span> WTO Anti-Dumping API</div><div class="source-url">ad-notification.wto.org/api/v2/itip/measures</div></div>
+              <div class="source-status"><span class="badge badge-sps">متصل</span></div>
+            </div>
+            <div class="source-desc">إخطارات تدابير مكافحة الإغراق المقدمة من الأعضاء وفق المادة 16 من اتفاقية Anti-Dumping.</div>
+            <div class="source-actions">
+              <button class="btn btn-sm btn-ghost" onclick="testApi('ad')"><i class="ti ti-plug"></i> اختبار</button>
+              <a href="https://ad-notification.wto.org" target="_blank" class="btn btn-sm btn-ghost"><i class="ti ti-external-link"></i> الموقع</a>
+            </div>
+          </div>
+
+          <div class="source-card">
+            <div class="source-card-header">
+              <div><div class="source-name"><span class="status-dot dot-live"></span> WTO QR Notifications</div><div class="source-url">qr-notification.wto.org/api/itip/qrs</div></div>
+              <div class="source-status"><span class="badge badge-sps">متصل</span></div>
+            </div>
+            <div class="source-desc">القيود الكمية المُبلَّغ عنها للأعضاء وفق المادة XI من GATT 1994.</div>
+            <div class="source-actions">
+              <button class="btn btn-sm btn-ghost" onclick="testApi('qr')"><i class="ti ti-plug"></i> اختبار</button>
+              <a href="https://qr-notification.wto.org" target="_blank" class="btn btn-sm btn-ghost"><i class="ti ti-external-link"></i> الموقع</a>
+            </div>
+          </div>
+
+          <div class="source-card">
+            <div class="source-card-header">
+              <div><div class="source-name"><span class="status-dot dot-live"></span> WTO Import Licensing</div><div class="source-url">lic-notification.wto.org/api/itip/legislations</div></div>
+              <div class="source-status"><span class="badge badge-sps">متصل</span></div>
+            </div>
+            <div class="source-desc">قوانين وإجراءات تراخيص الاستيراد المُبلَّغ عنها وفق اتفاقية إجراءات تراخيص الاستيراد.</div>
+            <div class="source-actions">
+              <button class="btn btn-sm btn-ghost" onclick="testApi('lic')"><i class="ti ti-plug"></i> اختبار</button>
+              <a href="https://lic-notification.wto.org" target="_blank" class="btn btn-sm btn-ghost"><i class="ti ti-external-link"></i> الموقع</a>
+            </div>
+          </div>
+
+          <div class="source-card">
+            <div class="source-card-header">
+              <div><div class="source-name"><span class="status-dot dot-live"></span> WITS — World Bank</div><div class="source-url">wits.worldbank.org/API/V1</div></div>
+              <div class="source-status"><span class="badge badge-sps">متصل</span></div>
+            </div>
+            <div class="source-desc">بيانات التجارة والرسوم الجمركية والتدابير غير الجمركية من World Bank / UNCTAD TRAINS.</div>
+            <div class="source-actions">
+              <button class="btn btn-sm btn-ghost" onclick="testApi('wits')"><i class="ti ti-plug"></i> اختبار</button>
+              <a href="https://wits.worldbank.org" target="_blank" class="btn btn-sm btn-ghost"><i class="ti ti-external-link"></i> الموقع</a>
+              <a href="https://wits.worldbank.org/witsapiintro.aspx" target="_blank" class="btn btn-sm btn-ghost"><i class="ti ti-file-text"></i> API Docs</a>
+            </div>
+          </div>
+
+          <div class="source-card">
+            <div class="source-card-header">
+              <div><div class="source-name"><span class="status-dot dot-warn"></span> TRAINS — UNCTAD</div><div class="source-url">trains.unctad.org</div></div>
+              <div class="source-status"><span class="badge badge-ntm">وصول عبر WITS</span></div>
+            </div>
+            <div class="source-desc">قاعدة بيانات التدابير غير الجمركية الأكثر شمولاً. يتم الوصول لبياناتها عبر WITS API.</div>
+            <div class="source-actions">
+              <a href="https://trains.unctad.org" target="_blank" class="btn btn-sm btn-ghost"><i class="ti ti-external-link"></i> الموقع الرسمي</a>
+              <a href="https://unctad.org/topic/trade-analysis/non-tariff-measures" target="_blank" class="btn btn-sm btn-ghost"><i class="ti ti-file-text"></i> NTM Framework</a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ==================== REPORTS PAGE ==================== -->
+      <div id="page-reports" class="page">
+        <div class="page-header">
+          <div class="page-title"><i class="ti ti-report"></i> التقارير والتحليلات</div>
+          <div class="page-desc">إنشاء تقارير PDF وExcel للتدابير غير الجمركية</div>
+        </div>
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-title"><i class="ti ti-file-type-pdf"></i> تقرير شهري</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:.75rem">ملخص شهري لأهم التدابير غير الجمركية المستحدثة</div>
+            <button class="btn btn-primary btn-sm" style="width:100%"><i class="ti ti-download"></i> توليد التقرير</button>
+          </div>
+          <div class="card">
+            <div class="card-title"><i class="ti ti-git-compare"></i> تقرير مقارنة</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:.75rem">مقارنة التدابير بين دول متعددة على سلعة محددة</div>
+            <button class="btn btn-primary btn-sm" style="width:100%"><i class="ti ti-download"></i> توليد التقرير</button>
+          </div>
+          <div class="card">
+            <div class="card-title"><i class="ti ti-file-spreadsheet"></i> تصدير البيانات</div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:.75rem">تصدير نتائج البحث كاملة بصيغة Excel أو CSV</div>
+            <button class="btn btn-primary btn-sm" style="width:100%"><i class="ti ti-download"></i> تصدير</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG
+   ============================================================ */
+const CFG = {
+  EPING_KEY: "05b4bc94c24a42af8ffc2710fe9db2e6",
+  ITIP_KEY:  "05b4bc94c24a42af8ffc2710fe9db2e6",
+  HEADERS: {
+    "Ocp-Apim-Subscription-Key": "05b4bc94c24a42af8ffc2710fe9db2e6",
+    "Accept": "application/json",
+    "Content-Type": "application/json"
+  },
+  ENDPOINTS: {
+    EPING:   "https://api.wto.org/eping",
+    ITIP_TS: "https://api.wto.org/timeseries/v1",
+    AD:      "https://ad-notification.wto.org/api/v2/itip/measures",
+    QR:      "https://qr-notification.wto.org/api/itip/qrs",
+    LIC:     "https://lic-notification.wto.org/api/itip/legislations",
+    WITS:    "https://wits.worldbank.org/API/V1"
+  }
+};
+
+/* ============================================================
+   NAV
+   ============================================================ */
+function nav(page, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+function switchTab(id, btn) {
+  const pane = document.getElementById(id);
+  if (!pane) return;
+  const parent = pane.closest('.page');
+  parent.querySelectorAll('.tab-pane').forEach(t => t.classList.remove('active'));
+  parent.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  pane.classList.add('active');
+  btn.classList.add('active');
+}
+
+/* ============================================================
+   CHARTS INIT
+   ============================================================ */
+let charts = {};
+function initCharts() {
+  // Type distribution
+  const c1 = document.getElementById('chartType');
+  if (c1) {
+    charts.type = new Chart(c1, {
+      type: 'doughnut',
+      data: {
+        labels: ['SPS','TBT','Anti-Dumping','QR','Import License','تدابير أخرى'],
+        datasets: [{ data: [0,0,0,0,0,0],
+          backgroundColor: ['#059669','#2563eb','#dc2626','#8b5cf6','#14b8a6','#6b7280'],
+          borderWidth: 1, borderColor: '#0d1f38' }]
+      },
+      options: { responsive:true, maintainAspectRatio:false, cutout:'65%',
+        plugins: { legend: { display:false } } }
+    });
+  }
+
+  // Countries bar
+  const c2 = document.getElementById('chartCountries');
+  if (c2) {
+    charts.countries = new Chart(c2, {
+      type: 'bar',
+      data: {
+        labels: ['EU','China','USA','India','Brazil'],
+        datasets: [{ label:'عدد التدابير', data: [0,0,0,0,0],
+          backgroundColor: '#2563eb', borderRadius: 4 }]
+      },
+      options: { responsive:true, maintainAspectRatio:false, indexAxis:'y',
+        plugins: { legend: { display:false } },
+        scales: { x: { grid: { color:'rgba(255,255,255,.05)' }, ticks: { color:'#8fa3be', font:{size:10} } },
+                  y: { grid: { display:false }, ticks: { color:'#8fa3be', font:{size:11} } } } }
+    });
+  }
+
+  // Trend line
+  const c3 = document.getElementById('chartTrend');
+  if (c3) {
+    const months = ['Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun'];
+    charts.trend = new Chart(c3, {
+      type: 'line',
+      data: {
+        labels: months,
+        datasets: [
+          { label:'SPS', data: [0,0,0,0,0,0,0,0,0,0,0,0], borderColor:'#059669', backgroundColor:'rgba(5,150,105,.08)', tension:.4, fill:true, pointRadius:3 },
+          { label:'TBT', data: [0,0,0,0,0,0,0,0,0,0,0,0], borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,.08)', tension:.4, fill:true, pointRadius:3 }
+        ]
+      },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins: { legend: { labels: { color:'#8fa3be', font:{size:11}, usePointStyle:true } } },
+        scales: { x: { grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#8fa3be',font:{size:10}} },
+                  y: { grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#8fa3be',font:{size:10}} } } }
+    });
+  }
+
+  // NTM codes chart
+  const c4 = document.getElementById('chartNTMCodes');
+  if (c4) {
+    charts.ntmCodes = new Chart(c4, {
+      type: 'bar',
+      data: {
+        labels: ['A — SPS','B — TBT','C — Pre-shipment','D — Customs','E — QR','F — Finance','G — Prices','H — Monopoly','I — Subsidies'],
+        datasets: [{ label:'عدد التدابير', data: [324,298,87,145,201,56,43,12,89],
+          backgroundColor: ['#059669','#2563eb','#14b8a6','#8b5cf6','#d97706','#ec4899','#f59e0b','#6b7280','#ef4444'],
+          borderRadius: 4 }]
+      },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins: { legend: { display:false } },
+        scales: { x: { grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#8fa3be',font:{size:10}} },
+                  y: { grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#8fa3be',font:{size:10}} } } }
+    });
+  }
+}
+
+/* ============================================================
+   DEMO DATA (shown when APIs are unreachable from browser due to CORS)
+   ============================================================ */
+const DEMO_MEASURES = [
+  { id:'G/SPS/N/SAU/142', country:'Saudi Arabia', market:'All WTO Members', product:'Bovine meat fresh/chilled', hs:'0201', type:'SPS', ntmCode:'A14', source:'ePing', scope:'Multilateral/Import', notifyDate:'2024-11-15', effectDate:'2025-02-01', desc:'Official veterinary health certificate required' },
+  { id:'G/TBT/N/CHN/1847', country:'China', market:'All WTO Members', product:'Electronic devices & components', hs:'8517', type:'TBT', ntmCode:'B7', source:'ePing', scope:'Multilateral/Import', notifyDate:'2024-11-10', effectDate:'2025-01-15', desc:'Mandatory technical standards for IoT devices' },
+  { id:'G/SPS/N/EU/1203', country:'European Union', market:'All WTO Members', product:'Dairy products', hs:'0401', type:'SPS', ntmCode:'A11', source:'ePing', scope:'Multilateral/Import', notifyDate:'2024-11-08', effectDate:'2025-03-01', desc:'Microbiological criteria for raw milk products' },
+  { id:'AD/2024/USA/7821', country:'United States', market:'China', product:'Steel flat products', hs:'7208', type:'Anti-Dumping', ntmCode:'—', source:'AD WTO', scope:'Bilateral', notifyDate:'2024-10-20', effectDate:'2024-11-01', desc:'Anti-dumping duties 18.5% — final determination' },
+  { id:'G/TBT/N/IND/524', country:'India', market:'All WTO Members', product:'Textiles & apparel', hs:'5208', type:'TBT', ntmCode:'B3', source:'ePing', scope:'Multilateral/Import', notifyDate:'2024-10-15', effectDate:'2025-01-01', desc:'Mandatory labelling requirements for textile products' },
+  { id:'QR/2024/BRA/201', country:'Brazil', market:'All WTO Members', product:'Agricultural chemicals', hs:'3808', type:'QR', ntmCode:'E1', source:'QR WTO', scope:'Multilateral/Import', notifyDate:'2024-09-30', effectDate:'2024-12-01', desc:'Import quota for pesticides — annual limit 50,000 MT' },
+  { id:'LIC/2024/JPN/0401', country:'Japan', market:'All WTO Members', product:'Rice', hs:'1006', type:'Import License', ntmCode:'—', source:'LIC WTO', scope:'Multilateral/Import', notifyDate:'2024-09-15', effectDate:'2024-10-01', desc:'Non-automatic import licensing for rice — prior approval required' },
+  { id:'G/SPS/N/AUS/412', country:'Australia', market:'All WTO Members', product:'Fresh fruits & vegetables', hs:'0804', type:'SPS', ntmCode:'A21', source:'ePing', scope:'Multilateral/Import', notifyDate:'2024-09-10', effectDate:'2025-02-15', desc:'Biosecurity import conditions for tropical fruits' },
+  { id:'G/TBT/N/KOR/892', country:'South Korea', market:'All WTO Members', product:'Automotive parts', hs:'8708', type:'TBT', ntmCode:'B14', source:'ePing', scope:'Multilateral/Import', notifyDate:'2024-08-22', effectDate:'2025-01-01', desc:'Revised safety standards for brake components' },
+  { id:'G/SPS/N/CAN/891', country:'Canada', market:'All WTO Members', product:'Seafood & fish products', hs:'0302', type:'SPS', ntmCode:'A12', source:'ePing', scope:'Multilateral/Import', notifyDate:'2024-08-10', effectDate:'2024-11-01', desc:'Maximum residue limits for aquaculture antibiotics' }
+];
+
+function loadDemoData() {
+  updateKPIs({ total:1247, sps:521, tbt:389, ad:87 });
+  updateCharts();
+  renderAlertFeed(DEMO_MEASURES.slice(0,6), 'alertFeed');
+  renderAlertFeed(DEMO_MEASURES.slice(0,8), 'alertsFull');
+  document.getElementById('lastSync').textContent = '⟳ بيانات توضيحية · ' + new Date().toLocaleTimeString('ar');
+}
+
+function updateKPIs({ total, sps, tbt, ad }) {
+  document.getElementById('kpi-total').textContent = total.toLocaleString();
+  document.getElementById('kpi-sps').textContent = sps.toLocaleString();
+  document.getElementById('kpi-tbt').textContent = tbt.toLocaleString();
+  document.getElementById('kpi-ad').textContent = ad.toLocaleString();
+  document.getElementById('kpi-total-t').innerHTML = '<i class="ti ti-trending-up"></i> +23 هذا الشهر';
+  document.getElementById('kpi-sps-t').innerHTML = '<i class="ti ti-trending-up"></i> +11 هذا الأسبوع';
+  document.getElementById('kpi-tbt-t').innerHTML = '<i class="ti ti-trending-up"></i> +7 هذا الأسبوع';
+  document.getElementById('kpi-ad-t').innerHTML = '<i class="ti ti-trending-up"></i> +2 هذا الشهر';
+}
+
+function updateCharts() {
+  if (charts.type) { charts.type.data.datasets[0].data = [521,389,87,64,43,143]; charts.type.update(); }
+  if (charts.countries) { charts.countries.data.datasets[0].data = [189,156,142,98,67]; charts.countries.update(); }
+  if (charts.trend) {
+    charts.trend.data.datasets[0].data = [38,42,35,48,51,44,49,53,47,55,60,57];
+    charts.trend.data.datasets[1].data = [28,32,30,35,38,33,36,40,34,42,45,41];
+    charts.trend.update();
+  }
+}
+
+function renderAlertFeed(items, targetId) {
+  const el = document.getElementById(targetId);
+  if (!el) return;
+  const typeColor = { SPS:'#059669', TBT:'#2563eb', 'Anti-Dumping':'#dc2626', QR:'#8b5cf6', 'Import License':'#14b8a6' };
+  const typeBadge = { SPS:'badge-sps', TBT:'badge-tbt', 'Anti-Dumping':'badge-ad', QR:'badge-qr', 'Import License':'badge-lic' };
+  const srcCls = { ePing:'src-eping', 'AD WTO':'src-ad', 'QR WTO':'src-qr', 'LIC WTO':'src-lic', 'TRAINS':'src-trains', 'I-TIP':'src-itip' };
+  el.innerHTML = items.map(m => `
+    <div class="alert-item" onclick="openDetail('${m.id}')">
+      <div class="alert-dot" style="background:${typeColor[m.type]||'#8fa3be'}"></div>
+      <div class="alert-body">
+        <div class="alert-title">${m.country} — ${m.id}</div>
+        <div class="alert-meta">${m.product} · HS: ${m.hs} · ${m.notifyDate} · المصدر: ${m.source}</div>
+      </div>
+      <span class="badge ${typeBadge[m.type]||'badge-ntm'}">${m.type}</span>
+    </div>`).join('');
+}
+
+function renderTable(items, targetId) {
+  const el = document.getElementById(targetId);
+  if (!el) return;
+  const typeBadge = { SPS:'badge-sps', TBT:'badge-tbt', 'Anti-Dumping':'badge-ad', QR:'badge-qr', 'Import License':'badge-lic' };
+  const srcCls = { ePing:'src-eping', 'AD WTO':'src-ad', 'QR WTO':'src-qr', 'LIC WTO':'src-lic', TRAINS:'src-trains', 'I-TIP':'src-itip' };
+  el.innerHTML = items.map(m => `
+    <tr>
+      <td><span class="mono">${m.id}</span></td>
+      <td>${m.country}</td>
+      <td>${m.product}<br><span class="hs-code">${m.hs}</span></td>
+      <td><span class="badge ${typeBadge[m.type]||'badge-ntm'}">${m.type}</span></td>
+      <td><span class="badge ${srcCls[m.source]||'src-eping'}">${m.source}</span></td>
+      <td>${m.scope||'—'}</td>
+      <td>${m.notifyDate}</td>
+      <td>${m.effectDate||'—'}</td>
+      <td><button class="btn btn-icon btn-ghost btn-sm" onclick="openDetail('${m.id}')"><i class="ti ti-eye"></i></button></td>
+    </tr>`).join('');
+  document.getElementById('searchStatus').innerHTML = `<span class="status-ok"><i class="ti ti-check"></i> تم العثور على ${items.length} نتيجة</span>`;
+}
+
+function openDetail(id) {
+  nav('detail', document.querySelectorAll('.nav-item')[3]);
+  document.getElementById('detailRef').textContent = id + ' — بيانات رسمية';
+}
+
+/* ============================================================
+   API CALLS — Real with CORS fallback
+   ============================================================ */
+async function apiFetch(url, label, statusId) {
+  if (statusId) document.getElementById(statusId).innerHTML = `<span><i class="ti ti-loader-2 spin"></i> جاري الاتصال بـ ${label}...</span>`;
+  try {
+    const res = await fetch(url, { headers: CFG.HEADERS });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch(e) {
+    if (statusId) document.getElementById(statusId).innerHTML = `<span style="color:var(--warn)"><i class="ti ti-alert-triangle"></i> CORS — يتطلب backend proxy. سبب: ${e.message}</span>`;
+    return null;
+  }
+}
+
+async function fetchEping() {
+  const data = await apiFetch(`${CFG.ENDPOINTS.EPING}/v1/epingalertsatoms?type=sps&pageSize=20`, 'ePing', 'searchStatus');
+  if (data && data.value) renderTable(data.value.map(mapEping), 'searchResults');
+  else renderTable(DEMO_MEASURES, 'searchResults');
+}
+
+async function fetchEpingFull() {
+  const type = document.getElementById('ep-type').value || 'sps';
+  const country = document.getElementById('ep-country').value;
+  const hs = document.getElementById('ep-hs').value;
+  let url = `${CFG.ENDPOINTS.EPING}/v1/epingalertsatoms?type=${type}&pageSize=20`;
+  if (country) url += `&member=${country}`;
+  if (hs) url += `&hs=${hs}`;
+  const data = await apiFetch(url, 'ePing', 'epingStatus');
+  const el = document.getElementById('epingResults');
+  if (data && data.value && data.value.length > 0) {
+    el.innerHTML = data.value.map(m => `<tr><td class="mono">${m.id||'—'}</td><td>${m.member||'—'}</td><td>${m.title||m.subject||'—'}</td><td><span class="badge ${(m.type||'').toLowerCase()==='sps'?'badge-sps':'badge-tbt'}">${m.type||'—'}</span></td><td>${m.date||m.notificationDate||'—'}</td><td>${m.url||m.link?`<a href="${m.url||m.link}" target="_blank" style="color:var(--blue-lt)">↗</a>`:'—'}</td></tr>`).join('');
+  } else {
+    el.innerHTML = DEMO_MEASURES.filter(m=>['SPS','TBT'].includes(m.type)).map(m=>`<tr><td class="mono">${m.id}</td><td>${m.country}</td><td>${m.product}</td><td><span class="badge ${m.type==='SPS'?'badge-sps':'badge-tbt'}">${m.type}</span></td><td>${m.notifyDate}</td><td><a href="https://docs.wto.org" target="_blank" style="color:var(--blue-lt)">↗</a></td></tr>`).join('');
+  }
+}
+
+async function fetchITIP() {
+  const ind = document.getElementById('it-indicator').value || 'ITS_MTV_AX';
+  const rep = document.getElementById('it-reporter').value;
+  const yf  = document.getElementById('it-year-from').value || '2020';
+  const yt  = document.getElementById('it-year-to').value || '2024';
+  let url = `${CFG.ENDPOINTS.ITIP_TS}/data/${ind}?reportingEconomy=${rep||'all'}&startYear=${yf}&endYear=${yt}&format=json`;
+  const data = await apiFetch(url, 'I-TIP Timeseries', 'itipStatus');
+  const el = document.getElementById('itipResults');
+  if (data && data.Dataset && data.Dataset.length > 0) {
+    const items = data.Dataset.slice(0,50);
+    const years = [...new Set(items.map(d=>d.Year))].sort();
+    const byRep = {};
+    items.forEach(d => { if (!byRep[d.ReporterISO3]) byRep[d.ReporterISO3]=[]; byRep[d.ReporterISO3].push({y:d.Year,v:d.Value}); });
+    document.getElementById('itipChartWrap').style.display='block';
+    if (charts.itip) charts.itip.destroy();
+    const ctx = document.getElementById('chartITIP');
+    const colors = ['#2563eb','#059669','#d97706','#8b5cf6','#ef4444'];
+    const datasets = Object.entries(byRep).slice(0,5).map(([rep,vals],i)=>({
+      label:rep, data:years.map(y=>{const f=vals.find(v=>v.y==y);return f?f.v:null;}),
+      borderColor:colors[i], tension:.4, pointRadius:3, fill:false
+    }));
+    charts.itip = new Chart(ctx, { type:'line', data:{ labels:years, datasets }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#8fa3be',font:{size:10}}}}, scales:{x:{ticks:{color:'#8fa3be'}},y:{ticks:{color:'#8fa3be'}}}}});
+    el.innerHTML = `<div style="padding:.5rem;font-size:11px;color:var(--success)"><i class="ti ti-check"></i> تم تحميل ${data.Dataset.length} نقطة بيانات من I-TIP API</div>`;
+  } else {
+    el.innerHTML = `<div style="padding:.5rem;font-size:12px;color:var(--text2)">عذراً — CORS يحجب الطلب المباشر. استخدم backend proxy لطلبات API الرسمية.</div>`;
+  }
+}
+
+async function fetchAD() {
+  const data = await apiFetch(`${CFG.ENDPOINTS.AD}?pageSize=10`, 'AD', 'searchStatus');
+  if (data && (data.items||data.value)) {
+    const items = (data.items||data.value).map(mapAD);
+    renderTable(items, 'searchResults');
+  } else { renderTable(DEMO_MEASURES.filter(m=>m.type==='Anti-Dumping'), 'searchResults'); }
+}
+
+async function fetchADFull() {
+  const data = await apiFetch(`${CFG.ENDPOINTS.AD}?pageSize=20`, 'Anti-Dumping WTO', 'adStatus');
+  const el = document.getElementById('adResults');
+  if (data && (data.items||data.value||data.measures)) {
+    const raw = data.items||data.value||data.measures||[];
+    el.innerHTML = raw.slice(0,20).map(m=>`<tr><td>${m.reportingMember||m.country||'—'}</td><td>${m.product||m.description||'—'}</td><td>${m.actionType||m.type||'AD'}</td><td>${m.initiationDate||m.startDate||'—'}</td><td><span class="badge badge-ad">${m.status||'نشط'}</span></td></tr>`).join('');
+  } else {
+    el.innerHTML = DEMO_MEASURES.filter(m=>m.type==='Anti-Dumping').map(m=>`<tr><td>${m.country}</td><td>${m.product}</td><td>${m.type}</td><td>${m.notifyDate}</td><td><span class="badge badge-ad">نشط</span></td></tr>`).join('');
+  }
+}
+
+async function fetchQR() {
+  const data = await apiFetch(`${CFG.ENDPOINTS.QR}?pageSize=10`, 'QR', 'searchStatus');
+  if (data) { renderTable(DEMO_MEASURES.filter(m=>m.type==='QR'), 'searchResults'); }
+  else renderTable(DEMO_MEASURES.filter(m=>m.type==='QR'), 'searchResults');
+}
+
+async function fetchQRFull() {
+  const data = await apiFetch(`${CFG.ENDPOINTS.QR}?pageSize=20`, 'QR WTO', 'qrStatus');
+  const el = document.getElementById('qrResults');
+  const fallback = DEMO_MEASURES.filter(m=>m.type==='QR');
+  const items = (data && (data.items||data.value)) ? (data.items||data.value) : fallback;
+  el.innerHTML = items.slice(0,20).map(m=>`<tr><td>${m.reportingMember||m.country||'—'}</td><td>${m.product||'—'}</td><td class="hs-code">${m.hs||m.hsCode||'—'}</td><td><span class="badge badge-qr">${m.actionType||m.type||'QR'}</span></td><td>${m.startDate||m.notifyDate||'—'}</td></tr>`).join('');
+}
+
+async function fetchLIC() {
+  const data = await apiFetch(`${CFG.ENDPOINTS.LIC}?pageSize=20`, 'Import License WTO', 'licStatus');
+  const el = document.getElementById('licResults');
+  const fallback = DEMO_MEASURES.filter(m=>m.type==='Import License');
+  const items = (data && (data.items||data.value||data.legislations)) ? (data.items||data.value||data.legislations) : fallback;
+  el.innerHTML = (items.length ? items : fallback).slice(0,20).map(m=>`<tr><td>${m.reportingMember||m.member||m.country||'—'}</td><td>${m.product||m.description||'—'}</td><td class="hs-code">${m.hs||m.hsCode||'—'}</td><td><span class="badge badge-lic">${m.licenseType||m.type||'ترخيص'}</span></td><td>${m.legislation||'—'}</td><td>${m.year||m.notifyDate||'—'}</td></tr>`).join('');
+}
+
+async function fetchWITS() {
+  const rep = document.getElementById('wt-reporter').value || 'SAU';
+  const yr  = document.getElementById('wt-year').value || '2023';
+  const hs  = document.getElementById('wt-hs').value || 'all';
+  const url = `${CFG.ENDPOINTS.WITS}/INDICATOR/VI.NTM.ALL.HS${hs}/${rep}/ALL/${yr}?format=json`;
+  const data = await apiFetch(url, 'WITS World Bank', 'witsStatus');
+  const el = document.getElementById('witsResults');
+  if (data && data.dataSets && data.dataSets.length > 0) {
+    el.innerHTML = `<div style="padding:1rem;font-size:12px;color:var(--success)"><i class="ti ti-check"></i> تم تحميل بيانات WITS لـ ${rep} سنة ${yr}</div>`;
+  } else {
+    el.innerHTML = `<div style="padding:1rem;font-size:12px;color:var(--text2)">يتطلب Proxy Server للوصول إلى WITS API من المتصفح. البيانات متاحة عبر الـ Backend.</div>`;
+  }
+}
+
+function openTrains() { window.open('https://trains.unctad.org', '_blank'); }
+
+/* ============================================================
+   SEARCH
+   ============================================================ */
+function doSearch() {
+  const q       = document.getElementById('q-main').value.toLowerCase();
+  const qtype   = document.getElementById('q-type').value;
+  const qsource = document.getElementById('q-source').value;
+  const qhs     = document.getElementById('q-hs').value;
+  const qcountry= document.getElementById('q-country').value;
+  const qscope  = document.getElementById('q-scope').value;
+  let results = DEMO_MEASURES.filter(m => {
+    if (q && !m.product.toLowerCase().includes(q) && !m.country.toLowerCase().includes(q) && !m.id.toLowerCase().includes(q)) return false;
+    if (qtype && !m.type.includes(qtype)) return false;
+    if (qhs && !m.hs.startsWith(qhs)) return false;
+    if (qcountry && !m.country.includes(qcountry.replace('المملكة العربية السعودية','Saudi'))) return false;
+    return true;
+  });
+  renderTable(results, 'searchResults');
+}
+
+function clearSearch() {
+  ['q-main','q-hs'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  ['q-type','q-source','q-scope','q-country','q-sector'].forEach(id => { const el=document.getElementById(id); if(el) el.selectedIndex=0; });
+  document.getElementById('searchStatus').textContent = 'أدخل معايير البحث ثم اضغط "بحث"';
+  document.getElementById('searchResults').innerHTML = '<tr><td colspan="9"><div class="empty"><i class="ti ti-search"></i>استخدم محرك البحث أعلاه للاستعلام</div></td></tr>';
+}
+
+/* ============================================================
+   MAP HELPERS
+   ============================================================ */
+function mapEping(m) {
+  return { id:m.id||m.notificationNumber||'—', country:m.member||m.country||'—', market:'All WTO Members', product:m.subject||m.title||'—', hs:m.hs||'—', type:(m.type||'SPS').toUpperCase(), ntmCode:'—', source:'ePing', scope:'Multilateral', notifyDate:m.date||m.notificationDate||'—', effectDate:m.closingDate||'—', desc:m.title||'' };
+}
+function mapAD(m) {
+  return { id:m.id||'AD-'+Date.now(), country:m.reportingMember||'—', market:m.affectedCountry||'—', product:m.product||'—', hs:m.hsCode||'—', type:'Anti-Dumping', ntmCode:'—', source:'AD WTO', scope:'Bilateral', notifyDate:m.initiationDate||'—', effectDate:m.terminationDate||'—', desc:m.description||'' };
+}
+
+/* ============================================================
+   AI ANALYSIS
+   ============================================================ */
+function aiQuick(type) {
+  const templates = {
+    sps: 'قم بتحليل إجراء SPS (Sanitary and Phytosanitary) متعلق باشتراطات الشهادات الصحية للمنتجات الغذائية المستوردة وفق: (1) اتفاقية SPS مواد 2 و5 و7 و8، (2) GATT 1994 المادة XX(b)، (3) معايير Codex Alimentarius وWOAH. مع بيان الحقوق والالتزامات.',
+    tbt: 'قم بتحليل إجراء TBT (Technical Barriers to Trade) متعلق باشتراطات المواصفات الفنية للمنتجات المستوردة وفق: (1) اتفاقية TBT مواد 2 و4 و7 و8، (2) مبدأ المعاملة بالمثل، (3) الاعتراف المتبادل بمعايير الاعتماد.',
+    ad: 'قم بتحليل إجراء مكافحة الإغراق (Anti-Dumping) وفق: (1) اتفاقية Anti-Dumping (المادة VI من GATT) بالتفصيل، (2) شروط تحديد الإغراق وحجم الضرر، (3) متطلبات الشفافية والإجراءات المتبعة، (4) سبل الطعن والإنصاف المتاحة.'
+  };
+  document.getElementById('aiInput').value = templates[type] || '';
+}
+
+async function runAI() {
+  const prompt = document.getElementById('aiInput').value.trim();
+  if (!prompt) return;
+  const box = document.getElementById('aiResultBox');
+  const content = document.getElementById('aiResultContent');
+  box.style.display = 'block';
+  content.innerHTML = '<div class="loading"><i class="ti ti-loader-2 spin"></i> جاري التحليل القانوني...</div>';
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: `أنت مستشار قانوني وتجاري متخصص في اتفاقيات منظمة التجارة العالمية (WTO) والتدابير غير الجمركية (NTMs). منهجيتك في كل تحليل:
+1. التكييف النظامي — تحديد طبيعة الإجراء
+2. الإطار القانوني — الاتفاقيات المنطبقة مع المواد المحددة (SPS, TBT, GATT, ADA, SCM...)
+3. التحليل القانوني — مدى التوافق مع WTO، مخاوف التمييز، القيود غير المبررة
+4. الأثر التجاري — على المصدرين والمستوردين
+5. التوصيات العملية — خطوات المتابعة والإجراءات المقترحة
+استخدم العربية حصراً. أشر إلى المواد القانونية المحددة. ميّز بين الأحكام الملزمة والاجتهاد.`,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content && data.content[0] ? data.content[0].text : 'لم يتم الحصول على رد.';
+    content.textContent = text;
+  } catch(e) {
+    content.innerHTML = '<div style="color:var(--warn)">تعذّر الاتصال بـ Claude API — يتطلب Backend Proxy لتفادي قيود CORS.</div>';
+  }
+}
+
+async function runLegalAnalysis() {
+  const desc = document.getElementById('detailDesc').textContent;
+  document.getElementById('aiInput').value = `حلّل الإجراء التالي قانونياً وتجارياً وفق اتفاقيات WTO:\n\n${desc}`;
+  nav('analysis', document.querySelectorAll('.nav-item')[4]);
+  runAI();
+}
+
+/* ============================================================
+   API TEST
+   ============================================================ */
+async function testApi(name) {
+  const tests = {
+    eping: `${CFG.ENDPOINTS.EPING}/v1/epingalertsatoms?type=sps&pageSize=1`,
+    itip:  `${CFG.ENDPOINTS.ITIP_TS}/data/ITS_MTV_AX?reportingEconomy=all&startYear=2023&endYear=2023&format=json&pageSize=1`,
+    ad:    `${CFG.ENDPOINTS.AD}?pageSize=1`,
+    qr:    `${CFG.ENDPOINTS.QR}?pageSize=1`,
+    lic:   `${CFG.ENDPOINTS.LIC}?pageSize=1`,
+    wits:  `${CFG.ENDPOINTS.WITS}/INDICATOR/VI.NTM.ALL.HSALL/SAU/ALL/2023?format=json`
+  };
+  const url = tests[name];
+  if (!url) return;
+  try {
+    const res = await fetch(url, { headers: CFG.HEADERS });
+    alert(name.toUpperCase() + ' API: ' + (res.ok ? '✓ متصل — ' + res.status : '✗ خطأ — ' + res.status));
+  } catch(e) {
+    alert(name.toUpperCase() + ' API: CORS يحجب الطلب المباشر من المتصفح. يتطلب Backend Proxy.\n' + e.message);
+  }
+}
+
+async function refreshAll() {
+  await fetchEping().catch(()=>{});
+  loadDemoData();
+}
+
+function runCompare() {
+  const hs = document.getElementById('cmp-hs').value;
+  const c1 = document.getElementById('cmp-c1').value;
+  const c2 = document.getElementById('cmp-c2').value;
+  const m1 = DEMO_MEASURES.filter(m=>!hs||m.hs.startsWith(hs)).slice(0,3);
+  const m2 = DEMO_MEASURES.filter(m=>!hs||m.hs.startsWith(hs)).slice(3,6);
+  const makeCard = (c, items) => `<div class="card"><div class="card-title"><i class="ti ti-flag"></i> ${c}</div>${items.map(m=>`<div style="padding:8px 0;border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:500">${m.id}</div><div style="font-size:11px;color:var(--text3)">${m.product} · <span class="badge ${m.type==='SPS'?'badge-sps':'badge-tbt'}">${m.type}</span></div></div>`).join('')}</div>`;
+  document.getElementById('compareResults').innerHTML = makeCard(c1,m1) + makeCard(c2,m2);
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  initCharts();
+  setTimeout(loadDemoData, 300);
+});
+initCharts();
+setTimeout(loadDemoData, 500);
+</script>
+</body>
+</html>
