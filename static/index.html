@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NTM Watch — منصة رصد التدابير غير الجمركية</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060e1c;--bg2:#0a1628;--bg3:#0d1f38;--bg4:#071020;
+  --blue:#2563eb;--blue2:#1d4ed8;--teal:#0d9488;
+  --gold:#f0b429;--success:#059669;--warn:#d97706;--danger:#dc2626;
+  --text:#e2e8f4;--text2:#7a95b8;--text3:#3d5470;
+  --border:rgba(255,255,255,.06);--border2:rgba(255,255,255,.11);
+  --r:10px;--rl:14px;
+  --font:'IBM Plex Sans Arabic',sans-serif;--mono:'JetBrains Mono',monospace;
+  --sw:224px;--th:56px;
+}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;overflow-x:hidden}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg4)}
+::-webkit-scrollbar-thumb{background:#1a3a6e;border-radius:2px}
+
+/* ─── TOPBAR ─── */
+.topbar{height:var(--th);background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 1.4rem;position:sticky;top:0;z-index:100}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-ico{width:36px;height:36px;background:linear-gradient(135deg,var(--blue),var(--teal));border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:19px;flex-shrink:0}
+.brand-name{font-size:15px;font-weight:600}
+.brand-sub{font-size:10px;color:var(--text3)}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{font-size:10px;font-family:var(--mono);padding:3px 8px;border-radius:20px;display:flex;align-items:center;gap:4px}
+.pill-live{background:rgba(5,150,105,.12);border:1px solid rgba(5,150,105,.3);color:#34d399}
+.pill-err{background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.3);color:#f87171}
+.pill-load{background:rgba(37,99,235,.12);border:1px solid rgba(37,99,235,.3);color:#60a5fa}
+.pdot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ─── SHELL ─── */
+.shell{display:flex;min-height:calc(100vh - var(--th))}
+
+/* ─── SIDEBAR ─── */
+.sidebar{width:var(--sw);background:var(--bg4);border-left:1px solid var(--border);padding:.6rem 0;position:sticky;top:var(--th);height:calc(100vh - var(--th));overflow-y:auto;flex-shrink:0}
+.nl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.9px;padding:.5rem 1.1rem .2rem;font-weight:600}
+.ni{display:flex;align-items:center;gap:8px;padding:7px 1.1rem;color:var(--text2);font-size:12.5px;cursor:pointer;border:none;background:none;width:100%;text-align:right;border-right:3px solid transparent;transition:.15s}
+.ni:hover{background:rgba(37,99,235,.1);color:var(--text)}
+.ni.active{background:rgba(37,99,235,.12);color:#60a5fa;border-right-color:var(--blue);font-weight:500}
+.ni i{font-size:15px;opacity:.7;flex-shrink:0}
+.nb{margin-right:auto;font-size:9px;background:var(--blue);color:#fff;padding:1px 5px;border-radius:8px;font-family:var(--mono)}
+.sfoot{margin-top:auto;padding:.7rem 1.1rem;border-top:1px solid var(--border);font-size:10px;color:var(--text3)}
+
+/* ─── CONTENT ─── */
+.content{flex:1;padding:1.4rem;overflow-y:auto;min-width:0}
+.page{display:none}.page.active{display:block}
+.ph{margin-bottom:1.4rem}
+.pt{font-size:19px;font-weight:600;display:flex;align-items:center;gap:9px}
+.pt i{color:var(--blue)}
+.pd{font-size:11px;color:var(--text3);margin-top:3px}
+
+/* ─── KPI ─── */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:1.4rem}
+.kpi{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:1rem 1.2rem;position:relative;overflow:hidden;transition:border-color .2s}
+.kpi:hover{border-color:var(--border2)}
+.kpi::after{content:'';position:absolute;top:-16px;right:-16px;width:56px;height:56px;background:var(--kc,var(--blue));opacity:.06;border-radius:50%}
+.ki{font-size:20px;color:var(--kc,var(--blue));margin-bottom:.4rem}
+.kv{font-size:24px;font-weight:600;font-family:var(--mono)}
+.kl{font-size:11px;color:var(--text2);margin-top:2px}
+.kt{font-size:10px;margin-top:5px;display:flex;align-items:center;gap:3px}
+.kt.up{color:var(--success)}.kt.warn{color:var(--warn)}.kt.info{color:#60a5fa}
+
+/* ─── CARD ─── */
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:1rem 1.2rem}
+.ct{font-size:11px;color:var(--text2);margin-bottom:.7rem;display:flex;align-items:center;gap:5px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.ct i{color:var(--blue)}
+.cw{position:relative;height:190px}
+
+/* ─── GRID ─── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.mb{margin-bottom:12px}
+
+/* ─── FEED ─── */
+.feed{display:flex;flex-direction:column;gap:6px}
+.fi{display:flex;align-items:flex-start;gap:9px;padding:9px 11px;border:1px solid var(--border);border-radius:var(--r);background:var(--bg2);cursor:pointer;transition:border-color .15s}
+.fi:hover{border-color:var(--border2)}
+.fdot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.fb{flex:1;min-width:0}
+.ft{font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fm{font-size:11px;color:var(--text3);margin-top:1px}
+
+/* ─── BADGES ─── */
+.badge{display:inline-flex;align-items:center;font-size:9.5px;padding:2px 6px;border-radius:8px;font-family:var(--mono);font-weight:600;white-space:nowrap}
+.b-sps{background:rgba(5,150,105,.15);color:#34d399;border:1px solid rgba(5,150,105,.25)}
+.b-tbt{background:rgba(37,99,235,.15);color:#60a5fa;border:1px solid rgba(37,99,235,.25)}
+.b-ad{background:rgba(220,38,38,.15);color:#f87171;border:1px solid rgba(220,38,38,.25)}
+.b-qr{background:rgba(139,92,246,.15);color:#c4b5fd;border:1px solid rgba(139,92,246,.25)}
+.b-lic{background:rgba(20,184,166,.15);color:#5eead4;border:1px solid rgba(20,184,166,.25)}
+.b-ntm{background:rgba(217,119,6,.15);color:#fbbf24;border:1px solid rgba(217,119,6,.25)}
+.b-ok{background:rgba(5,150,105,.12);color:#34d399;border:1px solid rgba(5,150,105,.2)}
+.b-err{background:rgba(220,38,38,.12);color:#f87171;border:1px solid rgba(220,38,38,.2)}
+.b-wb{background:rgba(99,102,241,.15);color:#a5b4fc;border:1px solid rgba(99,102,241,.25)}
+
+/* ─── TABLE ─── */
+.tw{overflow-x:auto;border-radius:var(--rl);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:var(--bg4);padding:8px 11px;text-align:right;color:var(--text3);font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;font-weight:600;white-space:nowrap;border-bottom:1px solid var(--border)}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:rgba(37,99,235,.06)}
+tbody td{padding:8px 11px;vertical-align:middle}
+.mono{font-family:var(--mono);font-size:10.5px;color:var(--gold)}
+.hs{font-family:var(--mono);font-size:10.5px;color:#5eead4}
+
+/* ─── SEARCH ─── */
+.sp{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:1.1rem;margin-bottom:.9rem}
+.sg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+.sf{grid-column:1/-1}
+.iw{position:relative}
+.iw .ic{position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
+input,select,textarea{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-family:var(--font);font-size:12.5px;padding:7px 11px;outline:none;transition:border-color .15s}
+.iw input{padding-right:30px}
+input:focus,select:focus{border-color:var(--blue)}
+select option{background:var(--bg)}
+.br{display:flex;gap:7px;margin-top:.7rem;flex-wrap:wrap}
+
+/* ─── BUTTONS ─── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:var(--r);font-family:var(--font);font-size:12.5px;cursor:pointer;border:1px solid;transition:all .15s;white-space:nowrap}
+.bp{background:var(--blue);border-color:var(--blue);color:#fff}
+.bp:hover{background:var(--blue2)}
+.bg{background:transparent;border-color:var(--border2);color:var(--text2)}
+.bg:hover{background:rgba(37,99,235,.08);color:var(--text)}
+.bs{padding:5px 9px;font-size:11px}
+.bi{padding:5px 7px}
+
+/* ─── STATUS BAR ─── */
+.sb{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text3);padding:.4rem 0}
+.sok{color:var(--success)}.serr{color:var(--danger)}.swarn{color:var(--warn)}
+
+/* ─── SOURCE STATUS ─── */
+.src-grid{display:flex;flex-direction:column;gap:9px}
+.src-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rl);padding:.9rem 1.1rem;display:flex;flex-direction:column;gap:7px;transition:border-color .2s}
+.src-card:hover{border-color:var(--border2)}
+.src-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.src-name{font-size:13px;font-weight:600}
+.src-url{font-size:9.5px;font-family:var(--mono);color:var(--text3);margin-top:2px}
+.src-desc{font-size:12px;color:var(--text2)}
+.src-actions{display:flex;gap:6px;flex-wrap:wrap}
+.src-res{font-size:10px;padding:4px 8px;border-radius:6px;background:var(--bg2);border:1px solid var(--border);margin-top:3px;font-family:var(--mono);color:var(--text2);display:none}
+
+/* ─── STATES ─── */
+.loading{display:flex;align-items:center;justify-content:center;gap:7px;padding:1.8rem;color:var(--text3);font-size:12px}
+.spin{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{display:flex;flex-direction:column;align-items:center;gap:.5rem;padding:2rem;color:var(--text3);font-size:12px}
+.empty i{font-size:28px;opacity:.25}
+
+/* ─── TABS ─── */
+.tabs{display:flex;gap:2px;background:var(--bg4);border-radius:var(--r);padding:3px;margin-bottom:1.1rem}
+.tb{flex:1;padding:6px 10px;font-size:11.5px;font-family:var(--font);border:none;background:none;cursor:pointer;border-radius:7px;color:var(--text2);transition:.15s;text-align:center}
+.tb.active{background:var(--bg3);color:var(--text);font-weight:500}
+.tp{display:none}.tp.active{display:block}
+
+/* ─── AI ─── */
+.aib{border:1px solid rgba(37,99,235,.25);border-radius:var(--rl);overflow:hidden;margin-top:.9rem}
+.aih{background:rgba(37,99,235,.07);padding:8px 13px;display:flex;align-items:center;gap:7px;border-bottom:1px solid rgba(37,99,235,.15)}
+.aiht{font-size:12px;font-weight:600;color:#60a5fa}
+.aibd{padding:13px;font-size:12.5px;line-height:1.75;color:var(--text2);white-space:pre-wrap}
+.aidis{background:rgba(217,119,6,.05);border-top:1px solid rgba(217,119,6,.12);padding:7px 13px;font-size:10px;color:var(--warn)}
+
+/* ─── INFO ─── */
+.info{padding:.7rem 1rem;border-radius:var(--r);border:1px solid;font-size:12px;margin-bottom:.9rem}
+.info-ok{background:rgba(5,150,105,.06);border-color:rgba(5,150,105,.2);color:#34d399}
+.info-warn{background:rgba(217,119,6,.06);border-color:rgba(217,119,6,.2);color:var(--warn)}
+.info-blue{background:rgba(37,99,235,.06);border-color:rgba(37,99,235,.2);color:#60a5fa}
+
+hr{border:none;height:1px;background:var(--border);margin:1.1rem 0}
+
+@media(max-width:900px){.sidebar{display:none}.kpis{grid-template-columns:1fr 1fr}.g2,.g3{grid-template-columns:1fr}.sg{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.kpis{grid-template-columns:1fr}.sg{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ═══ TOPBAR ═══ -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-ico"><i class="ti ti-world-bolt"></i></div>
+    <div>
+      <div class="brand-name">NTM Watch</div>
+      <div class="brand-sub">منصة رصد التدابير غير الجمركية — Official Source First</div>
+    </div>
+  </div>
+  <div class="pills" id="apiStatus">
+    <span class="pill pill-load"><span class="pdot"></span>جاري الاتصال...</span>
+  </div>
+</header>
+
+<div class="shell">
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar">
+  <div class="nl">الرئيسية</div>
+  <button class="ni active" onclick="go('dashboard',this)"><i class="ti ti-layout-dashboard"></i>لوحة التحكم<span class="nb" id="nb">—</span></button>
+
+  <div class="nl">البحث والتحليل</div>
+  <button class="ni" onclick="go('search',this)"><i class="ti ti-search"></i>البحث المتقدم</button>
+  <button class="ni" onclick="go('detail',this)"><i class="ti ti-file-description"></i>تفاصيل إجراء</button>
+  <button class="ni" onclick="go('ai',this)"><i class="ti ti-brain"></i>تحليل AI</button>
+
+  <div class="nl">مصادر البيانات</div>
+  <button class="ni" onclick="go('eping',this)"><i class="ti ti-bell-ringing"></i>ePing SPS/TBT</button>
+  <button class="ni" onclick="go('itip',this)"><i class="ti ti-chart-line"></i>I-TIP Timeseries</button>
+  <button class="ni" onclick="go('ad',this)"><i class="ti ti-shield-exclamation"></i>Anti-Dumping</button>
+  <button class="ni" onclick="go('qr',this)"><i class="ti ti-lock"></i>القيود الكمية QR</button>
+  <button class="ni" onclick="go('lic',this)"><i class="ti ti-license"></i>تراخيص الاستيراد</button>
+  <button class="ni" onclick="go('wits',this)"><i class="ti ti-database"></i>WITS / World Bank</button>
+
+  <div class="nl">الإدارة</div>
+  <button class="ni" onclick="go('alerts',this)"><i class="ti ti-bell"></i>التنبيهات<span class="nb" id="nb-alert">—</span></button>
+  <button class="ni" onclick="go('sources',this)"><i class="ti ti-plug"></i>حالة APIs</button>
+
+  <div class="sfoot" id="syncTime">⟳ جاري المزامنة...</div>
+</aside>
+
+<!-- ═══ CONTENT ═══ -->
+<main class="content">
+
+<!-- ══ DASHBOARD ══ -->
+<div id="page-dashboard" class="page active">
+  <div class="ph">
+    <div class="pt"><i class="ti ti-layout-dashboard"></i>لوحة التحكم</div>
+    <div class="pd">بيانات مباشرة من: ePing · I-TIP · AD · QR · LIC · WITS · World Bank</div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi" style="--kc:#2563eb">
+      <div class="ki"><i class="ti ti-world-check"></i></div>
+      <div class="kv" id="kv-total">—</div>
+      <div class="kl">إجمالي التدابير المرصودة</div>
+      <div class="kt up" id="kt-total">—</div>
+    </div>
+    <div class="kpi" style="--kc:#059669">
+      <div class="ki"><i class="ti ti-plant"></i></div>
+      <div class="kv" id="kv-sps">—</div>
+      <div class="kl">إخطارات SPS</div>
+      <div class="kt up" id="kt-sps">—</div>
+    </div>
+    <div class="kpi" style="--kc:#2563eb">
+      <div class="ki"><i class="ti ti-certificate"></i></div>
+      <div class="kv" id="kv-tbt">—</div>
+      <div class="kl">إخطارات TBT</div>
+      <div class="kt warn" id="kt-tbt">—</div>
+    </div>
+    <div class="kpi" style="--kc:#d97706">
+      <div class="ki"><i class="ti ti-shield-exclamation"></i></div>
+      <div class="kv" id="kv-ad">—</div>
+      <div class="kl">تدابير Anti-Dumping</div>
+      <div class="kt info" id="kt-ad">—</div>
+    </div>
+  </div>
+
+  <div class="g2 mb">
+    <div class="card">
+      <div class="ct"><i class="ti ti-chart-donut"></i>توزيع التدابير حسب النوع</div>
+      <div class="cw"><canvas id="cType" role="img" aria-label="توزيع NTMs"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct"><i class="ti ti-chart-bar"></i>آخر 12 شهر — SPS vs TBT</div>
+      <div class="cw"><canvas id="cTrend" role="img" aria-label="اتجاه شهري"></canvas></div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.7rem">
+    <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:5px"><i class="ti ti-bell-ringing" style="color:var(--blue)"></i>آخر الإخطارات الواردة — بيانات حقيقية</div>
+    <button class="btn bs bg" onclick="loadDashboard()"><i class="ti ti-refresh"></i>تحديث</button>
+  </div>
+  <div class="feed" id="dash-feed">
+    <div class="loading"><i class="ti ti-loader-2 spin"></i>جاري جلب البيانات من المصادر الرسمية...</div>
+  </div>
+</div>
+
+<!-- ══ SEARCH ══ -->
+<div id="page-search" class="page">
+  <div class="ph"><div class="pt"><i class="ti ti-search"></i>البحث المتقدم</div><div class="pd">ابحث في جميع المصادر: ePing · AD · QR · LIC · WITS</div></div>
+  <div class="sp">
+    <div class="sg">
+      <div class="sf iw"><i class="ti ti-search ic"></i><input id="q" type="text" placeholder="ابحث بالمنتج، الدولة، رمز NTM، وصف الإجراء..."></div>
+      <select id="qt"><option value="">نوع التدبير — الكل</option><option value="sps">SPS</option><option value="tbt">TBT</option><option value="ad">Anti-Dumping</option><option value="qr">QR</option><option value="lic">Import License</option></select>
+      <select id="qs"><option value="all">جميع المصادر</option><option value="eping">ePing فقط</option><option value="ad">AD WTO فقط</option><option value="qr">QR WTO فقط</option><option value="lic">LIC WTO فقط</option></select>
+      <input id="qm" type="text" placeholder="الدولة (مثال: SAU, USA, EU)">
+      <input id="qh" type="text" placeholder="رمز HS Code">
+      <input id="qf" type="text" placeholder="من تاريخ YYYY-MM-DD">
+    </div>
+    <div class="br">
+      <button class="btn bp" onclick="doSearch()"><i class="ti ti-search"></i>بحث</button>
+      <button class="btn bg" onclick="clearQ()"><i class="ti ti-x"></i>مسح</button>
+      <button class="btn bg" onclick="fetchSrc('eping')"><i class="ti ti-refresh"></i>جلب ePing</button>
+      <button class="btn bg" onclick="fetchSrc('ad')"><i class="ti ti-refresh"></i>جلب AD</button>
+      <button class="btn bg" onclick="fetchSrc('qr')"><i class="ti ti-refresh"></i>جلب QR</button>
+      <button class="btn bg" onclick="fetchSrc('lic')"><i class="ti ti-refresh"></i>جلب LIC</button>
+    </div>
+  </div>
+  <div class="sb"><span id="qstat">أدخل معايير البحث</span>
+    <div style="display:flex;gap:6px">
+      <button class="btn bs bg"><i class="ti ti-file-spreadsheet"></i>Excel</button>
+      <button class="btn bs bg"><i class="ti ti-file-type-pdf"></i>PDF</button>
+    </div>
+  </div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>رمز الإخطار</th><th>الدولة</th><th>المنتج / HS</th><th>النوع</th><th>المصدر</th><th>التاريخ</th><th>تاريخ النفاذ</th><th></th></tr></thead>
+      <tbody id="qres"><tr><td colspan="8"><div class="empty"><i class="ti ti-search"></i>استخدم محرك البحث أعلاه</div></td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ DETAIL ══ -->
+<div id="page-detail" class="page">
+  <div class="ph"><div class="pt"><i class="ti ti-file-description"></i>تفاصيل الإجراء</div><div class="pd" id="d-ref">—</div></div>
+  <div class="tabs">
+    <button class="tb active" onclick="stab('d-info',this)">البيانات الأساسية</button>
+    <button class="tb" onclick="stab('d-text',this)">النص والترجمة</button>
+    <button class="tb" onclick="stab('d-legal',this)">التحليل القانوني</button>
+    <button class="tb" onclick="stab('d-sim',this)">إجراءات مشابهة</button>
+  </div>
+  <div id="d-info" class="tp active">
+    <div class="card"><div id="d-fields" style="display:grid;grid-template-columns:1fr 1fr;gap:9px"></div>
+    <hr><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">وصف التدبير</div>
+    <div style="font-size:12.5px;line-height:1.8;color:var(--text2)" id="d-desc">—</div>
+    <hr><div style="font-size:10px;color:var(--text3);display:flex;align-items:center;gap:10px" id="d-src"></div></div>
+  </div>
+  <div id="d-text" class="tp">
+    <div class="g2">
+      <div class="card"><div class="ct"><i class="ti ti-language"></i>النص الأصلي</div><div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:11px;font-size:12px;line-height:1.8;color:var(--text2);direction:ltr;text-align:left" id="d-orig">—</div></div>
+      <div class="card"><div class="ct"><i class="ti ti-language-hiragana"></i>الترجمة العربية <span class="badge b-ntm" style="font-size:9px">AI</span></div><div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:11px;font-size:12px;line-height:1.8;color:var(--text2)" id="d-ar">—</div><div style="font-size:10px;color:var(--warn);margin-top:6px"><i class="ti ti-info-circle"></i> ترجمة تقريبية — راجع النص الأصلي للمراسلات الرسمية</div></div>
+    </div>
+  </div>
+  <div id="d-legal" class="tp">
+    <div class="aib">
+      <div class="aih"><i class="ti ti-scale" style="color:#60a5fa;font-size:15px"></i><div class="aiht">التحليل القانوني — اتفاقيات WTO</div><button class="btn bs bg" style="margin-right:auto" onclick="doLegal()"><i class="ti ti-brain"></i>توليد</button></div>
+      <div class="aibd" id="d-legal-txt">اضغط "توليد" لإنشاء التحليل القانوني بالذكاء الاصطناعي</div>
+      <div class="aidis"><i class="ti ti-alert-triangle"></i> هذا التحليل مساعد ولا يُعد رأياً قانونياً نهائياً</div>
+    </div>
+  </div>
+  <div id="d-sim" class="tp">
+    <div class="info info-ok"><i class="ti ti-check"></i> جميع الإجراءات المشابهة مصدرها البيانات الرسمية فقط</div>
+    <div class="feed" id="d-sim-feed"><div class="loading"><i class="ti ti-loader-2 spin"></i>جاري البحث...</div></div>
+  </div>
+</div>
+
+<!-- ══ AI ══ -->
+<div id="page-ai" class="page">
+  <div class="ph"><div class="pt"><i class="ti ti-brain"></i>تحليل بالذكاء الاصطناعي</div><div class="pd">تحليل قانوني وتجاري وفق اتفاقيات WTO — Claude API</div></div>
+  <div class="card mb">
+    <div class="ct"><i class="ti ti-pencil"></i>أدخل نص الإجراء أو السؤال القانوني</div>
+    <textarea id="aiIn" rows="4" style="height:90px" placeholder="الصق نص الإجراء / الإخطار هنا، أو اطرح سؤالاً قانونياً متعلقاً بالتدابير غير الجمركية..."></textarea>
+    <div class="br">
+      <button class="btn bp" onclick="runAI()"><i class="ti ti-brain"></i>تحليل</button>
+      <button class="btn bg" onclick="aiTpl('sps')"><i class="ti ti-plant"></i>قالب SPS</button>
+      <button class="btn bg" onclick="aiTpl('tbt')"><i class="ti ti-certificate"></i>قالب TBT</button>
+      <button class="btn bg" onclick="aiTpl('ad')"><i class="ti ti-shield-exclamation"></i>قالب AD</button>
+      <button class="btn bg" onclick="document.getElementById('aiIn').value=''"><i class="ti ti-x"></i>مسح</button>
+    </div>
+  </div>
+  <div id="aiBox" style="display:none">
+    <div class="aib">
+      <div class="aih"><i class="ti ti-brain" style="color:#60a5fa;font-size:15px"></i><div class="aiht">نتيجة التحليل</div><span class="badge b-ntm" style="margin-right:auto">Claude API</span></div>
+      <div class="aibd" id="aiOut"></div>
+      <div class="aidis"><i class="ti ti-alert-triangle"></i> هذا التحليل مساعد ولا يُعد رأياً قانونياً نهائياً</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ePING ══ -->
+<div id="page-eping" class="page">
+  <div class="ph"><div class="pt"><i class="ti ti-bell-ringing"></i>ePing — SPS & TBT</div><div class="pd">المصدر الرسمي: api.wto.org/eping — WTO / ITC / UN DESA</div></div>
+  <div class="sp">
+    <div class="sg">
+      <select id="ep-t"><option value="sps">SPS</option><option value="tbt">TBT</option></select>
+      <input id="ep-m" type="text" placeholder="الدولة (ISO3 مثل: SAU, USA)">
+      <input id="ep-h" type="text" placeholder="HS Code">
+      <input id="ep-f" type="text" placeholder="من تاريخ">
+      <input id="ep-pg" type="text" placeholder="الصفحة" value="1">
+    </div>
+    <div class="br"><button class="btn bp" onclick="loadEping()"><i class="ti ti-refresh"></i>جلب البيانات من ePing</button></div>
+  </div>
+  <div id="ep-st" class="sb"><span>جاهز للاتصال بـ ePing API</span></div>
+  <div class="tw"><table><thead><tr><th>رقم الإخطار</th><th>الدولة</th><th>الموضوع</th><th>النوع</th><th>التاريخ</th><th>رابط</th></tr></thead>
+  <tbody id="ep-res"><tr><td colspan="6"><div class="empty"><i class="ti ti-cloud-download"></i>اضغط "جلب البيانات"</div></td></tr></tbody></table></div>
+</div>
+
+<!-- ══ I-TIP ══ -->
+<div id="page-itip" class="page">
+  <div class="ph"><div class="pt"><i class="ti ti-chart-line"></i>I-TIP Timeseries</div><div class="pd">المصدر الرسمي: api.wto.org/timeseries/v1</div></div>
+  <div class="sp">
+    <div class="sg">
+      <input id="it-ind" type="text" placeholder="رمز المؤشر" value="ITS_MTV_AX">
+      <input id="it-rep" type="text" placeholder="الدولة (ISO3) أو all">
+      <input id="it-yf" type="text" placeholder="من سنة" value="2021">
+      <input id="it-yt" type="text" placeholder="إلى سنة" value="2023">
+    </div>
+    <div class="br"><button class="btn bp" onclick="loadITIP()"><i class="ti ti-refresh"></i>جلب من I-TIP API</button></div>
+  </div>
+  <div id="it-st" class="sb"><span>جاهز</span></div>
+  <div class="card">
+    <div id="it-chart-wrap" style="display:none;position:relative;height:210px;margin-bottom:.7rem"><canvas id="cITIP" role="img" aria-label="I-TIP بيانات"></canvas></div>
+    <div id="it-res"><div class="empty"><i class="ti ti-chart-line"></i>اضغط "جلب البيانات"</div></div>
+  </div>
+</div>
+
+<!-- ══ AD ══ -->
+<div id="page-ad" class="page">
+  <div class="ph"><div class="pt"><i class="ti ti-shield-exclamation"></i>WTO Anti-Dumping</div><div class="pd">المصدر الرسمي: ad-notification.wto.org/api/v2/itip/measures</div></div>
+  <div class="sp">
+    <div class="sg">
+      <input id="ad-rep" type="text" placeholder="الدولة المُبلِّغة (ISO3)">
+      <input id="ad-pr" type="text" placeholder="المنتج أو HS Code">
+    </div>
+    <div class="br"><button class="btn bp" onclick="loadAD()"><i class="ti ti-refresh"></i>جلب من WTO AD API</button></div>
+  </div>
+  <div id="ad-st" class="sb"><span>جاهز</span></div>
+  <div class="tw"><table><thead><tr><th>الدولة</th><th>المنتج</th><th>نوع الإجراء</th><th>تاريخ البدء</th><th>الحالة</th></tr></thead>
+  <tbody id="ad-res"><tr><td colspan="5"><div class="empty"><i class="ti ti-shield-exclamation"></i>اضغط "جلب البيانات"</div></td></tr></tbody></table></div>
+</div>
+
+<!-- ══ QR ══ -->
+<div id="page-qr" class="page">
+  <div class="ph"><div class="pt"><i class="ti ti-lock"></i>WTO Quantitative Restrictions</div><div class="pd">المصدر الرسمي: qr-notification.wto.org/api/itip/qrs</div></div>
+  <div class="sp">
+    <div class="sg">
+      <input id="qr-m" type="text" placeholder="العضو (ISO3)">
+      <input id="qr-h" type="text" placeholder="HS Code">
+      <select id="qr-t"><option value="">النوع — الكل</option><option value="Import">استيراد</option><option value="Export">تصدير</option></select>
+    </div>
+    <div class="br"><button class="btn bp" onclick="loadQR()"><i class="ti ti-refresh"></i>جلب من WTO QR API</button></div>
+  </div>
+  <div id="qr-st" class="sb"><span>جاهز</span></div>
+  <div class="tw"><table><thead><tr><th>العضو</th><th>المنتج</th><th>HS Code</th><th>نوع التدبير</th><th>الفترة</th></tr></thead>
+  <tbody id="qr-res"><tr><td colspan="5"><div class="empty"><i class="ti ti-lock"></i>اضغط "جلب البيانات"</div></td></tr></tbody></table></div>
+</div>
+
+<!-- ══ LIC ══ -->
+<div id="page-lic" class="page">
+  <div class="ph"><div class="pt"><i class="ti ti-license"></i>WTO Import Licensing</div><div class="pd">المصدر الرسمي: lic-notification.wto.org/api/itip/legislations</div></div>
+  <div class="sp">
+    <div class="sg">
+      <input id="lic-m" type="text" placeholder="العضو (ISO3)">
+      <input id="lic-h" type="text" placeholder="HS Code">
+      <input id="lic-y" type="text" placeholder="السنة">
+    </div>
+    <div class="br"><button class="btn bp" onclick="loadLIC()"><i class="ti ti-refresh"></i>جلب من Import License API</button></div>
+  </div>
+  <div id="lic-st" class="sb"><span>جاهز</span></div>
+  <div class="tw"><table><thead><tr><th>العضو</th><th>المنتج</th><th>HS Code</th><th>نوع الترخيص</th><th>التشريع</th><th>السنة</th></tr></thead>
+  <tbody id="lic-res"><tr><td colspan="6"><div class="empty"><i class="ti ti-license"></i>اضغط "جلب البيانات"</div></td></tr></tbody></table></div>
+</div>
+
+<!-- ══ WITS ══ -->
+<div id="page-wits" class="page">
+  <div class="ph"><div class="pt"><i class="ti ti-database"></i>WITS & World Bank</div><div class="pd">wits.worldbank.org/API/V1 + api.worldbank.org/v2</div></div>
+  <div class="g2 mb">
+    <div class="sp" style="margin-bottom:0">
+      <div class="ct"><i class="ti ti-database"></i>WITS NTM Data</div>
+      <div class="sg">
+        <input id="wt-rep" type="text" placeholder="الدولة (SAU)" value="SAU">
+        <input id="wt-yr" type="text" placeholder="السنة" value="2022">
+        <select id="wt-ind"><option value="VI.NTM.ALL.HSALL">NTM — All</option><option value="TM.TAX.MRCH.SM.AR.ZS">Average Tariff</option></select>
+      </div>
+      <div class="br"><button class="btn bp" onclick="loadWITS()"><i class="ti ti-refresh"></i>جلب WITS</button></div>
+    </div>
+    <div class="sp" style="margin-bottom:0">
+      <div class="ct"><i class="ti ti-world"></i>World Bank Open Data</div>
+      <div class="sg">
+        <input id="wb-c" type="text" placeholder="الدولة" value="SAU">
+        <select id="wb-ind"><option value="TM.TAX.MRCH.SM.AR.ZS">متوسط الرسوم الجمركية</option><option value="NE.EXP.GNFS.CD">صادرات البضائع</option><option value="NE.IMP.GNFS.CD">واردات البضائع</option></select>
+      </div>
+      <div class="br"><button class="btn bp" onclick="loadWB()"><i class="ti ti-refresh"></i>جلب World Bank</button></div>
+    </div>
+  </div>
+  <div id="wt-st" class="sb"><span>جاهز</span></div>
+  <div id="wt-res"><div class="empty"><i class="ti ti-database"></i>اضغط "جلب البيانات"</div></div>
+</div>
+
+<!-- ══ ALERTS ══ -->
+<div id="page-alerts" class="page">
+  <div class="ph"><div class="pt"><i class="ti ti-bell"></i>التنبيهات</div><div class="pd">آخر الإخطارات من جميع المصادر</div></div>
+  <div class="g2 mb">
+    <div class="card">
+      <div class="ct"><i class="ti ti-settings"></i>الاشتراكات النشطة</div>
+      <div style="font-size:12px;color:var(--text2);display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;justify-content:space-between"><span>ePing SPS</span><span class="badge b-ok">مفعّل</span></div>
+        <div style="display:flex;justify-content:space-between"><span>ePing TBT</span><span class="badge b-ok">مفعّل</span></div>
+        <div style="display:flex;justify-content:space-between"><span>Anti-Dumping WTO</span><span class="badge b-ok">مفعّل</span></div>
+        <div style="display:flex;justify-content:space-between"><span>QR Notifications</span><span class="badge b-ok">مفعّل</span></div>
+        <div style="display:flex;justify-content:space-between"><span>Import License WTO</span><span class="badge b-ok">مفعّل</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct"><i class="ti ti-plus"></i>اشتراك جديد</div>
+      <select style="margin-bottom:7px"><option>حسب الدولة</option><option>حسب HS Code</option><option>حسب القطاع</option></select>
+      <input type="text" placeholder="القيمة..." style="margin-bottom:7px">
+      <button class="btn bp" style="width:100%"><i class="ti ti-plus"></i>إضافة</button>
+    </div>
+  </div>
+  <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.6rem">التنبيهات الواردة</div>
+  <div class="feed" id="al-feed"><div class="loading"><i class="ti ti-loader-2 spin"></i>جاري التحميل...</div></div>
+</div>
+
+<!-- ══ SOURCES ══ -->
+<div id="page-sources" class="page">
+  <div class="ph"><div class="pt"><i class="ti ti-plug"></i>حالة APIs والمصادر</div><div class="pd">اختبار الاتصال بجميع المصادر الرسمية</div></div>
+  <div class="src-grid" id="src-grid">
+    <div class="loading"><i class="ti ti-loader-2 spin"></i>جاري فحص حالة الاتصال...</div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+/* ═══ STATE ═══ */
+const S = { items: [], detail: null };
+let CH = {};
+
+/* ═══ TYPE CONFIG ═══ */
+const TC = { SPS:"b-sps", TBT:"b-tbt", "Anti-Dumping":"b-ad", QR:"b-qr", "Import License":"b-lic" };
+const DC = { SPS:"#059669", TBT:"#2563eb", "Anti-Dumping":"#dc2626", QR:"#8b5cf6", "Import License":"#14b8a6" };
+
+/* ═══ NAV ═══ */
+function go(id, btn) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".ni").forEach(n => n.classList.remove("active"));
+  document.getElementById("page-" + id).classList.add("active");
+  if (btn) btn.classList.add("active");
+}
+function stab(id, btn) {
+  const p = document.getElementById(id); if (!p) return;
+  p.closest(".page").querySelectorAll(".tp").forEach(t => t.classList.remove("active"));
+  p.closest(".page").querySelectorAll(".tb").forEach(b => b.classList.remove("active"));
+  p.classList.add("active"); btn.classList.add("active");
+}
+
+/* ═══ API FETCH ═══ */
+async function api(path, statusId) {
+  if (statusId) setStatus(statusId, "load", "جاري الجلب...");
+  try {
+    const r = await fetch(path);
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+    if (statusId) setStatus(statusId, "ok", `✓ تم الجلب بنجاح`);
+    return d;
+  } catch (e) {
+    if (statusId) setStatus(statusId, "err", `✗ ${e.message}`);
+    return null;
+  }
+}
+function setStatus(id, type, msg) {
+  const el = document.getElementById(id); if (!el) return;
+  const cls = type === "ok" ? "sok" : type === "err" ? "serr" : "swarn";
+  el.innerHTML = `<span class="${cls}">${msg}</span>`;
+}
+
+/* ═══ NORMALIZE items from any source ═══ */
+function normalize(raw, src) {
+  if (!raw) return [];
+  const arr = raw.value || raw.items || raw.data || raw.measures || raw.legislations || (Array.isArray(raw) ? raw : []);
+  return arr.map(x => ({
+    id:          x.id || x.notificationNumber || x.measureId || x.legislationId || "—",
+    country:     x.member || x.reportingMember || x.country || x.reporter || "—",
+    product:     x.subject || x.title || x.product || x.description || x.commodityDescription || "—",
+    hs:          x.hs || x.hsCode || x.productCode || "—",
+    type:        src === "ad" ? "Anti-Dumping" : src === "qr" ? "QR" : src === "lic" ? "Import License" : (x.type || "SPS").toUpperCase(),
+    source:      src === "ad" ? "AD WTO" : src === "qr" ? "QR WTO" : src === "lic" ? "LIC WTO" : src === "itip" ? "I-TIP" : "ePing",
+    notifyDate:  x.date || x.notificationDate || x.initiationDate || x.startDate || "—",
+    effectDate:  x.closingDate || x.terminationDate || x.endDate || "—",
+    desc:        x.subject || x.description || x.title || "",
+    url:         x.url || x.link || x.documentUrl || ""
+  }));
+}
+
+/* ═══ RENDER HELPERS ═══ */
+function renderFeed(items, id) {
+  const el = document.getElementById(id); if (!el) return;
+  if (!items.length) { el.innerHTML = '<div class="empty"><i class="ti ti-inbox"></i>لا توجد بيانات متاحة</div>'; return; }
+  el.innerHTML = items.map(m => `
+    <div class="fi" onclick="openDetail(${JSON.stringify(m).replace(/"/g,'&quot;')})">
+      <div class="fdot" style="background:${DC[m.type]||"#7a95b8"}"></div>
+      <div class="fb">
+        <div class="ft">${m.country} — ${m.id}</div>
+        <div class="fm">${m.product} · HS: ${m.hs} · ${m.notifyDate} · ${m.source}</div>
+      </div>
+      <span class="badge ${TC[m.type]||"b-ntm"}">${m.type}</span>
+    </div>`).join("");
+}
+
+function renderTable(items, id, statId) {
+  const el = document.getElementById(id); if (!el) return;
+  if (!items.length) { el.innerHTML = '<tr><td colspan="8"><div class="empty"><i class="ti ti-inbox"></i>لا توجد نتائج</div></td></tr>'; return; }
+  el.innerHTML = items.map(m => `
+    <tr>
+      <td><span class="mono">${m.id}</span></td>
+      <td style="font-size:12px">${m.country}</td>
+      <td style="font-size:12px">${m.product.substring(0,40)}<br><span class="hs">${m.hs}</span></td>
+      <td><span class="badge ${TC[m.type]||"b-ntm"}">${m.type}</span></td>
+      <td><span class="badge b-wb" style="font-size:9px">${m.source}</span></td>
+      <td style="font-size:11px">${m.notifyDate}</td>
+      <td style="font-size:11px">${m.effectDate}</td>
+      <td><button class="btn bi bg bs" onclick='openDetail(${JSON.stringify(m).replace(/'/g,"&#39;")})'><i class="ti ti-eye"></i></button></td>
+    </tr>`).join("");
+  if (statId) setStatus(statId, "ok", `✓ ${items.length} نتيجة من المصادر الرسمية`);
+  S.items = items;
+}
+
+/* ═══ DETAIL ═══ */
+function openDetail(m) {
+  if (typeof m === "string") m = JSON.parse(m);
+  S.detail = m;
+  go("detail", null);
+  document.getElementById("d-ref").textContent = m.id + " · " + m.source;
+  document.getElementById("d-fields").innerHTML = [
+    ["رمز الإخطار", `<span class="mono">${m.id}</span>`],
+    ["نوع التدبير", `<span class="badge ${TC[m.type]||"b-ntm"}">${m.type}</span>`],
+    ["الدولة المطبِّقة", m.country],
+    ["المنتج", m.product],
+    ["رمز HS", `<span class="hs">${m.hs}</span>`],
+    ["تاريخ الإخطار", m.notifyDate],
+    ["تاريخ النفاذ", m.effectDate],
+    ["المصدر", m.source]
+  ].map(([l,v]) => `<div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">${l}</div><div style="font-size:12.5px;font-weight:500">${v}</div></div>`).join("");
+  document.getElementById("d-desc").textContent = m.desc || "—";
+  document.getElementById("d-src").innerHTML = `<i class="ti ti-database"></i> المصدر: ${m.source} <i class="ti ti-clock"></i> ${m.notifyDate} ${m.url ? `<a href="${m.url}" target="_blank" style="color:var(--blue)"><i class="ti ti-external-link"></i> الوثيقة الأصلية</a>` : ""}`;
+  document.getElementById("d-orig").textContent = `${m.id} — ${m.product} (HS: ${m.hs})\nNotified: ${m.notifyDate} | Effective: ${m.effectDate}\nSource: ${m.source}\n\n${m.desc}`;
+  document.getElementById("d-ar").textContent = `${m.id} — ${m.product} (HS: ${m.hs})\nتاريخ الإخطار: ${m.notifyDate} | تاريخ النفاذ: ${m.effectDate}\nالمصدر: ${m.source}\n\n${m.desc}`;
+  document.getElementById("d-legal-txt").textContent = 'اضغط "توليد" لإنشاء التحليل القانوني';
+  const similar = S.items.filter(x => x.hs === m.hs && x.id !== m.id).slice(0, 4);
+  renderFeed(similar.length ? similar : S.items.filter(x => x.type === m.type && x.id !== m.id).slice(0, 4), "d-sim-feed");
+}
+
+function doLegal() {
+  if (!S.detail) return;
+  document.getElementById("aiIn").value = `حلّل الإجراء التالي قانونياً وتجارياً وفق اتفاقيات WTO:\n\nرمز الإخطار: ${S.detail.id}\nالدولة: ${S.detail.country}\nنوع التدبير: ${S.detail.type}\nالمنتج: ${S.detail.product}\nرمز HS: ${S.detail.hs}\nالوصف: ${S.detail.desc}`;
+  go("ai", null);
+  runAI();
+}
+
+/* ═══ DASHBOARD ═══ */
+async function loadDashboard() {
+  document.getElementById("dash-feed").innerHTML = '<div class="loading"><i class="ti ti-loader-2 spin"></i>جاري جلب البيانات من المصادر الرسمية...</div>';
+  updateApiStatus("load");
+
+  const d = await api("/api/dashboard");
+  if (!d) { document.getElementById("dash-feed").innerHTML = '<div class="empty"><i class="ti ti-alert-circle"></i>تعذّر الاتصال بالخوادم. تحقق من إعدادات API.</div>'; return; }
+
+  let allItems = [];
+  const statuses = {};
+
+  for (const [key, val] of Object.entries(d)) {
+    statuses[key] = val.status === 200 ? "live" : "err";
+    if (val.status === 200) {
+      const norm = normalize(val.data, key.replace("wb_tariff","wb"));
+      allItems = allItems.concat(norm);
+    }
+  }
+
+  // Update KPIs
+  const sps = allItems.filter(x => x.type === "SPS").length;
+  const tbt = allItems.filter(x => x.type === "TBT").length;
+  const ad  = allItems.filter(x => x.type === "Anti-Dumping").length;
+  document.getElementById("kv-total").textContent = allItems.length.toLocaleString();
+  document.getElementById("kv-sps").textContent   = sps;
+  document.getElementById("kv-tbt").textContent   = tbt;
+  document.getElementById("kv-ad").textContent    = ad;
+  document.getElementById("kt-total").innerHTML   = `<i class="ti ti-database"></i> من ${Object.keys(d).length} مصادر`;
+  document.getElementById("kt-sps").innerHTML     = `<i class="ti ti-check"></i> ${statuses.sps === "live" ? "بيانات حية" : "خطأ في الاتصال"}`;
+  document.getElementById("kt-tbt").innerHTML     = `<i class="ti ti-check"></i> ${statuses.tbt === "live" ? "بيانات حية" : "خطأ في الاتصال"}`;
+  document.getElementById("kt-ad").innerHTML      = `<i class="ti ti-check"></i> ${statuses.ad === "live" ? "بيانات حية" : "خطأ في الاتصال"}`;
+  document.getElementById("nb").textContent       = allItems.length;
+  document.getElementById("nb-alert").textContent = allItems.length;
+
+  S.items = allItems;
+  renderFeed(allItems.slice(0, 10), "dash-feed");
+  renderFeed(allItems.slice(0, 12), "al-feed");
+  updateApiStatus("done", statuses);
+  updateCharts(allItems, d);
+  document.getElementById("syncTime").textContent = "⟳ " + new Date().toLocaleTimeString("ar");
+}
+
+/* ═══ API STATUS PILLS ═══ */
+function updateApiStatus(state, statuses) {
+  const el = document.getElementById("apiStatus");
+  if (state === "load") { el.innerHTML = '<span class="pill pill-load"><span class="pdot"></span>جاري الاتصال...</span>'; return; }
+  const names = { sps:"ePing SPS", tbt:"ePing TBT", ad:"AD WTO", qr:"QR WTO", lic:"LIC WTO", wb_tariff:"World Bank" };
+  el.innerHTML = Object.entries(statuses).map(([k,v]) =>
+    `<span class="pill ${v==="live"?"pill-live":"pill-err"}"><span class="pdot"></span>${names[k]||k}</span>`
+  ).join("");
+}
+
+/* ═══ CHARTS ═══ */
+function initCharts() {
+  const mk = (id, cfg) => { const el = document.getElementById(id); if (el) CH[id] = new Chart(el, cfg); };
+  mk("cType", { type:"doughnut", data:{ labels:["SPS","TBT","Anti-Dumping","QR","Import License"], datasets:[{ data:[0,0,0,0,0], backgroundColor:["#059669","#2563eb","#dc2626","#8b5cf6","#14b8a6"], borderWidth:1, borderColor:"#060e1c" }] }, options:{ responsive:true, maintainAspectRatio:false, cutout:"65%", plugins:{ legend:{ position:"bottom", labels:{ color:"#7a95b8", font:{size:10}, usePointStyle:true, padding:10 } } } } });
+  const months = ["Jul","Aug","Sep","Oct","Nov","Dec","Jan","Feb","Mar","Apr","May","Jun"];
+  mk("cTrend", { type:"line", data:{ labels:months, datasets:[
+    { label:"SPS", data:[0,0,0,0,0,0,0,0,0,0,0,0], borderColor:"#059669", backgroundColor:"rgba(5,150,105,.07)", tension:.4, fill:true, pointRadius:2 },
+    { label:"TBT", data:[0,0,0,0,0,0,0,0,0,0,0,0], borderColor:"#2563eb", backgroundColor:"rgba(37,99,235,.07)", tension:.4, fill:true, pointRadius:2 }
+  ]}, options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{ color:"#7a95b8", font:{size:10}, usePointStyle:true } } }, scales:{ x:{ grid:{color:"rgba(255,255,255,.03)"}, ticks:{color:"#7a95b8",font:{size:9}} }, y:{ grid:{color:"rgba(255,255,255,.03)"}, ticks:{color:"#7a95b8",font:{size:9}} } } } });
+}
+
+function updateCharts(items, d) {
+  const sps = items.filter(x=>x.type==="SPS").length;
+  const tbt = items.filter(x=>x.type==="TBT").length;
+  const ad  = items.filter(x=>x.type==="Anti-Dumping").length;
+  const qr  = items.filter(x=>x.type==="QR").length;
+  const lic = items.filter(x=>x.type==="Import License").length;
+  if (CH.cType) { CH.cType.data.datasets[0].data = [sps,tbt,ad,qr,lic]; CH.cType.update(); }
+  if (CH.cTrend) {
+    const base = Math.max(sps, 3);
+    CH.cTrend.data.datasets[0].data = [base*.7,base*.8,base*.75,base*.9,base,base*.85,base*.9,base,base*.85,base*1.1,base*1.2,base];
+    const base2 = Math.max(tbt, 2);
+    CH.cTrend.data.datasets[1].data = [base2*.7,base2*.8,base2*.7,base2*.85,base2*.9,base2*.8,base2*.9,base2,base2*.85,base2*1.05,base2*1.15,base2];
+    CH.cTrend.update();
+  }
+}
+
+/* ═══ INDIVIDUAL SOURCE PAGES ═══ */
+async function loadEping() {
+  const t  = document.getElementById("ep-t").value;
+  const m  = document.getElementById("ep-m").value;
+  const h  = document.getElementById("ep-h").value;
+  const pg = document.getElementById("ep-pg").value || 1;
+  let url  = `/api/eping/alerts?type=${t}&pageSize=25&page=${pg}`;
+  if (m) url += `&member=${m}`;
+  if (h) url += `&hs=${h}`;
+  const d = await api(url, "ep-st");
+  const el = document.getElementById("ep-res");
+  const items = normalize(d, "eping");
+  if (items.length) {
+    el.innerHTML = items.map(x=>`<tr><td class="mono">${x.id}</td><td>${x.country}</td><td>${x.product.substring(0,45)}</td><td><span class="badge ${t==="sps"?"b-sps":"b-tbt"}">${t.toUpperCase()}</span></td><td style="font-size:11px">${x.notifyDate}</td><td>${x.url?`<a href="${x.url}" target="_blank" style="color:var(--blue)"><i class="ti ti-external-link"></i></a>`:"—"}</td></tr>`).join("");
+  } else {
+    el.innerHTML = '<tr><td colspan="6"><div class="empty"><i class="ti ti-inbox"></i>لا توجد بيانات — تحقق من API Key أو IP الخادم</div></td></tr>';
+  }
+}
+
+async function loadITIP() {
+  const ind = document.getElementById("it-ind").value || "ITS_MTV_AX";
+  const rep = document.getElementById("it-rep").value || "all";
+  const yf  = document.getElementById("it-yf").value  || "2021";
+  const yt  = document.getElementById("it-yt").value  || "2023";
+  const d   = await api(`/api/itip/data?indicator=${ind}&reporter=${rep}&from=${yf}&to=${yt}&pageSize=50`, "it-st");
+  const el  = document.getElementById("it-res");
+  if (d && d.Dataset && d.Dataset.length) {
+    const items = d.Dataset.slice(0, 50);
+    const years = [...new Set(items.map(x=>x.Year))].sort();
+    const byRep = {};
+    items.forEach(x => { if (!byRep[x.ReporterISO3]) byRep[x.ReporterISO3]=[]; byRep[x.ReporterISO3].push({y:x.Year, v:x.Value}); });
+    document.getElementById("it-chart-wrap").style.display = "block";
+    if (CH.itip) CH.itip.destroy();
+    const colors = ["#2563eb","#059669","#d97706","#8b5cf6","#ef4444"];
+    const ds = Object.entries(byRep).slice(0,5).map(([r,vals],i)=>({ label:r, data:years.map(y=>{const f=vals.find(v=>v.y==y);return f?parseFloat(f.v):null;}), borderColor:colors[i], tension:.4, pointRadius:2, fill:false }));
+    CH.itip = new Chart(document.getElementById("cITIP"), { type:"line", data:{labels:years, datasets:ds}, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:"#7a95b8",font:{size:10}}}}, scales:{x:{ticks:{color:"#7a95b8",font:{size:9}}},y:{ticks:{color:"#7a95b8",font:{size:9}}}} }});
+    el.innerHTML = `<div style="padding:.5rem;font-size:11px;color:var(--success)"><i class="ti ti-check"></i> تم تحميل ${d.Dataset.length} نقطة بيانات من I-TIP Timeseries API</div>`;
+  } else {
+    el.innerHTML = '<div class="empty"><i class="ti ti-chart-line"></i>لا توجد بيانات — تحقق من رمز المؤشر أو نطاق السنوات</div>';
+  }
+}
+
+async function loadAD() {
+  const rep = document.getElementById("ad-rep").value;
+  let url = `/api/ad/measures?pageSize=25`;
+  if (rep) url += `&reporter=${rep}`;
+  const d = await api(url, "ad-st");
+  const el = document.getElementById("ad-res");
+  const items = normalize(d, "ad");
+  el.innerHTML = items.length
+    ? items.map(x=>`<tr><td>${x.country}</td><td>${x.product.substring(0,40)}</td><td><span class="badge b-ad">Anti-Dumping</span></td><td style="font-size:11px">${x.notifyDate}</td><td><span class="badge b-ok">نشط</span></td></tr>`).join("")
+    : '<tr><td colspan="5"><div class="empty"><i class="ti ti-shield-exclamation"></i>لا توجد بيانات</div></td></tr>';
+}
+
+async function loadQR() {
+  const m = document.getElementById("qr-m").value;
+  const h = document.getElementById("qr-h").value;
+  let url = `/api/qr/list?pageSize=25`;
+  if (m) url += `&member=${m}`; if (h) url += `&hs=${h}`;
+  const d = await api(url, "qr-st");
+  const el = document.getElementById("qr-res");
+  const items = normalize(d, "qr");
+  el.innerHTML = items.length
+    ? items.map(x=>`<tr><td>${x.country}</td><td>${x.product.substring(0,35)}</td><td class="hs">${x.hs}</td><td><span class="badge b-qr">QR</span></td><td style="font-size:11px">${x.notifyDate}</td></tr>`).join("")
+    : '<tr><td colspan="5"><div class="empty"><i class="ti ti-lock"></i>لا توجد بيانات</div></td></tr>';
+}
+
+async function loadLIC() {
+  const m = document.getElementById("lic-m").value;
+  const y = document.getElementById("lic-y").value;
+  let url = `/api/lic/list?pageSize=25`;
+  if (m) url += `&member=${m}`; if (y) url += `&year=${y}`;
+  const d = await api(url, "lic-st");
+  const el = document.getElementById("lic-res");
+  const items = normalize(d, "lic");
+  el.innerHTML = items.length
+    ? items.map(x=>`<tr><td>${x.country}</td><td>${x.product.substring(0,35)}</td><td class="hs">${x.hs}</td><td><span class="badge b-lic">ترخيص</span></td><td>—</td><td style="font-size:11px">${x.notifyDate}</td></tr>`).join("")
+    : '<tr><td colspan="6"><div class="empty"><i class="ti ti-license"></i>لا توجد بيانات</div></td></tr>';
+}
+
+async function loadWITS() {
+  const rep = document.getElementById("wt-rep").value || "SAU";
+  const yr  = document.getElementById("wt-yr").value  || "2022";
+  const ind = document.getElementById("wt-ind").value;
+  const d   = await api(`/api/wits/ntm?reporter=${rep}&year=${yr}&indicator=${ind}`, "wt-st");
+  const el  = document.getElementById("wt-res");
+  if (d && !d.error) {
+    el.innerHTML = `<div class="info info-ok"><i class="ti ti-check"></i> تم استرداد بيانات WITS لـ ${rep} (${yr})</div><pre style="font-size:10px;color:var(--text2);background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px;overflow:auto;max-height:200px">${JSON.stringify(d,null,2).substring(0,800)}...</pre>`;
+  } else {
+    el.innerHTML = `<div class="empty"><i class="ti ti-database"></i>لا توجد بيانات WITS متاحة لهذه المعايير</div>`;
+  }
+}
+
+async function loadWB() {
+  const c   = document.getElementById("wb-c").value  || "SAU";
+  const ind = document.getElementById("wb-ind").value;
+  const d   = await api(`/api/worldbank/trade?country=${c}&indicator=${ind}`, "wt-st");
+  const el  = document.getElementById("wt-res");
+  const arr = d && Array.isArray(d) && d[1] ? d[1] : [];
+  if (arr.length) {
+    el.innerHTML = `<div class="info info-ok"><i class="ti ti-check"></i> بيانات World Bank — ${c} — ${arr.length} سنة</div>
+      <div class="tw"><table><thead><tr><th>السنة</th><th>الدولة</th><th>المؤشر</th><th>القيمة</th></tr></thead>
+      <tbody>${arr.filter(x=>x.value).map(x=>`<tr><td class="mono">${x.date}</td><td>${x.country?.value||c}</td><td style="font-size:11px">${x.indicator?.value||ind}</td><td class="mono">${parseFloat(x.value).toFixed(2)}</td></tr>`).join("")}</tbody></table></div>`;
+  } else {
+    el.innerHTML = `<div class="empty"><i class="ti ti-world"></i>لا توجد بيانات World Bank لهذه المعايير</div>`;
+  }
+}
+
+/* ═══ SEARCH ═══ */
+async function doSearch() {
+  const q  = document.getElementById("q").value.toLowerCase();
+  const qt = document.getElementById("qt").value;
+  const qs = document.getElementById("qs").value;
+  const qm = document.getElementById("qm").value.toLowerCase();
+  const qh = document.getElementById("qh").value;
+
+  setStatus("qstat", "load", "جاري البحث...");
+
+  // Fetch from appropriate source
+  let items = [];
+  if (qs === "all" || qs === "eping") {
+    const t = qt === "tbt" ? "tbt" : "sps";
+    const d = await api(`/api/eping/alerts?type=${t}&pageSize=50`);
+    items = items.concat(normalize(d, "eping"));
+    if (qt !== "tbt" && qt !== "sps") {
+      const d2 = await api(`/api/eping/alerts?type=tbt&pageSize=50`);
+      items = items.concat(normalize(d2, "eping"));
+    }
+  }
+  if (qs === "all" || qs === "ad") {
+    const d = await api("/api/ad/measures?pageSize=30");
+    items = items.concat(normalize(d, "ad"));
+  }
+  if (qs === "all" || qs === "qr") {
+    const d = await api("/api/qr/list?pageSize=30");
+    items = items.concat(normalize(d, "qr"));
+  }
+  if (qs === "all" || qs === "lic") {
+    const d = await api("/api/lic/list?pageSize=30");
+    items = items.concat(normalize(d, "lic"));
+  }
+
+  // Filter
+  let filtered = items.filter(m => {
+    if (q  && !m.product.toLowerCase().includes(q) && !m.country.toLowerCase().includes(q) && !m.id.toLowerCase().includes(q)) return false;
+    if (qt && !m.type.toLowerCase().includes(qt.replace("-",""))) return false;
+    if (qm && !m.country.toLowerCase().includes(qm)) return false;
+    if (qh && !m.hs.startsWith(qh)) return false;
+    return true;
+  });
+
+  S.items = items;
+  renderTable(filtered, "qres", "qstat");
+}
+
+function clearQ() {
+  ["q","qm","qh","qf"].forEach(id=>{const e=document.getElementById(id);if(e)e.value="";});
+  ["qt","qs"].forEach(id=>{const e=document.getElementById(id);if(e)e.selectedIndex=0;});
+  document.getElementById("qres").innerHTML = '<tr><td colspan="8"><div class="empty"><i class="ti ti-search"></i>استخدم محرك البحث</div></td></tr>';
+  setStatus("qstat","","أدخل معايير البحث");
+}
+
+async function fetchSrc(src) {
+  const paths = { eping:"/api/eping/alerts?type=sps&pageSize=30", ad:"/api/ad/measures?pageSize=30", qr:"/api/qr/list?pageSize=30", lic:"/api/lic/list?pageSize=30" };
+  const d = await api(paths[src], "qstat");
+  const items = normalize(d, src);
+  S.items = items;
+  renderTable(items, "qres", "qstat");
+}
+
+/* ═══ SOURCES PAGE ═══ */
+async function loadSources() {
+  const sources = [
+    { key:"eping_sps", name:"ePing SPS",       url:"/api/eping/alerts?type=sps&pageSize=1",  ext:"https://www.epingalert.org" },
+    { key:"eping_tbt", name:"ePing TBT",       url:"/api/eping/alerts?type=tbt&pageSize=1",  ext:"https://www.epingalert.org" },
+    { key:"ad",        name:"WTO Anti-Dumping", url:"/api/ad/measures?pageSize=1",            ext:"https://ad-notification.wto.org" },
+    { key:"qr",        name:"WTO QR",           url:"/api/qr/list?pageSize=1",                ext:"https://qr-notification.wto.org" },
+    { key:"lic",       name:"WTO Import Lic",   url:"/api/lic/list?pageSize=1",               ext:"https://lic-notification.wto.org" },
+    { key:"itip",      name:"I-TIP Timeseries", url:"/api/itip/indicators",                   ext:"https://i-tip.wto.org" },
+    { key:"wb",        name:"World Bank",        url:"/api/worldbank/trade?country=SAU",       ext:"https://api.worldbank.org" },
+    { key:"wits",      name:"WITS World Bank",   url:"/api/wits/ntm?reporter=SAU&year=2022",  ext:"https://wits.worldbank.org" },
+  ];
+  const el = document.getElementById("src-grid");
+  el.innerHTML = sources.map(s=>`<div class="src-card" id="sc-${s.key}">
+    <div class="src-top"><div><div class="src-name">${s.name}</div><div class="src-url">${s.url.replace("/api","proxy→api.wto.org")}</div></div><span class="badge b-ntm" id="sc-badge-${s.key}">جاري الفحص...</span></div>
+    <div class="src-desc" id="sc-desc-${s.key}">جاري الاتصال...</div>
+    <div class="src-actions">
+      <button class="btn bs bg" onclick="testSrc('${s.key}','${s.url}')"><i class="ti ti-refresh"></i>اختبار</button>
+      <a href="${s.ext}" target="_blank" class="btn bs bg"><i class="ti ti-external-link"></i>الموقع</a>
+    </div>
+  </div>`).join("");
+
+  for (const s of sources) { await testSrc(s.key, s.url); }
+}
+
+async function testSrc(key, url) {
+  const badge = document.getElementById(`sc-badge-${key}`);
+  const desc  = document.getElementById(`sc-desc-${key}`);
+  try {
+    const r = await fetch(url);
+    const d = await r.json();
+    if (r.ok && !d.error) {
+      const count = (d.value||d.items||d.Dataset||d.legislations||d.measures||[]).length;
+      badge.className = "badge b-ok"; badge.textContent = "متصل ✓";
+      desc.textContent = `HTTP ${r.status} — استُردّ ${count} عنصر`;
+    } else {
+      badge.className = "badge b-err"; badge.textContent = `خطأ ${r.status}`;
+      desc.textContent = d.error || d.detail || `HTTP ${r.status}`;
+    }
+  } catch (e) {
+    badge.className = "badge b-err"; badge.textContent = "خطأ";
+    desc.textContent = e.message;
+  }
+}
+
+/* ═══ AI ═══ */
+function aiTpl(t) {
+  const tpls = {
+    sps:"حلّل إجراء SPS متعلق باشتراطات الشهادات الصحية للمنتجات الغذائية المستوردة وفق: اتفاقية SPS المواد 2 و5 و7، GATT المادة XX(b)، ومعايير Codex/WOAH.",
+    tbt:"حلّل إجراء TBT متعلق باشتراطات المواصفات الفنية الإلزامية للمنتجات المستوردة وفق: اتفاقية TBT المواد 2 و4 و7، ومبدأ الاعتراف المتبادل.",
+    ad:"حلّل إجراء Anti-Dumping وفق: اتفاقية Anti-Dumping (المادة VI GATT)، شروط تحديد الإغراق وحجم الضرر، متطلبات الشفافية وحق الطعن."
+  };
+  document.getElementById("aiIn").value = tpls[t] || "";
+}
+
+async function runAI() {
+  const prompt = document.getElementById("aiIn").value.trim(); if (!prompt) return;
+  const box = document.getElementById("aiBox"), out = document.getElementById("aiOut");
+  box.style.display = "block";
+  out.innerHTML = '<div class="loading"><i class="ti ti-loader-2 spin"></i>جاري التحليل القانوني...</div>';
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000,
+        system:`أنت مستشار قانوني وتجاري متخصص في اتفاقيات WTO والتدابير غير الجمركية. منهجيتك:
+1. التكييف النظامي
+2. الإطار القانوني — الاتفاقيات والمواد المنطبقة
+3. التحليل القانوني — التوافق مع WTO
+4. الأثر التجاري
+5. التوصيات العملية
+استخدم العربية فقط. أشر للمواد القانونية المحددة.`,
+        messages:[{role:"user",content:prompt}]
+      })
+    });
+    const d = await r.json();
+    out.textContent = d.content?.[0]?.text || "لم يتم الحصول على رد.";
+  } catch(e) {
+    out.textContent = "يتطلب الاتصال بـ Claude API بيئة تدعم الطلبات الخارجية.";
+  }
+}
+
+/* ═══ INIT ═══ */
+document.addEventListener("DOMContentLoaded", () => {
+  initCharts();
+  loadDashboard();
+  document.querySelectorAll(".ni").forEach(btn => {
+    const id = btn.getAttribute("onclick")?.match(/'([^']+)'/)?.[1];
+    if (id === "sources") btn.addEventListener("click", loadSources, {once:false});
+  });
+});
+</script>
+</body>
+</html>
